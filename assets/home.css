@@ -38,16 +38,16 @@ html.trailer-open { overflow: hidden; }
 .trailer-shot > p + p { margin-top: 0; }
 .trailer .metric-arrow { color: #8d8b86; }
 
-/* The name, set like the hero's: the same weight and tracking, so its o's take the hero's fitted eyes. They
-   wear the mark's expression and blink once. On the last shot the name signs off, eyes on the buttons. */
+/* The name, set like the hero's: the same weight and tracking, so its o's take the hero's fitted eyes. Both
+   look straight out at the viewer and blink once. On the last shot the name signs off, eyes on the buttons. */
 .trailer-name, .trailer-sign { font-weight: 600; letter-spacing: -.07em; }
 .trailer-name { font-size: clamp(64px, 11vw, 168px); line-height: .95; }
 .shot-name.is-on .trailer-name { animation: trailer-rise .9s var(--spring-gentle) both, eye-blink .22s ease-in-out 1.7s; }
 .trailer-sign { font-size: clamp(44px, 5vw, 72px); line-height: 1; }
-/* Light letters on black: the white sits a hair inside each counter, so the o keeps its outline. */
-.trailer .eye-letter::before { width: calc(var(--eye-w) - .035em); height: calc(var(--eye-h) - .035em); box-shadow: none; }
-.trailer .eye-pupil { transition: transform .7s var(--spring); }
-.shot-end.is-on .eye-pupil { --eye-x: 0px; --eye-y: calc((var(--eye-h) - var(--eye-p)) / 2 - .01em); transition-delay: 1.2s; }
+/* Light letters on black: the white runs well under each letter, so the counter's own edge draws the eye. */
+.trailer .eye-letter::before { width: calc(var(--eye-w) + .1em); height: calc(var(--eye-h) + .1em); box-shadow: none; }
+.trailer .eye-pupil { --eye-x: 0px; --eye-y: calc((var(--eye-h) - var(--eye-p)) * .15); transition: transform .7s var(--spring); }
+.shot-end.is-on .eye-pupil { --eye-y: calc((var(--eye-h) - var(--eye-p)) / 2 - .01em); transition-delay: 1.2s; }
 
 /* A project: the art on the left, the brief on the right; stacked on a phone. */
 .trailer-project { flex-direction: row; align-items: center; justify-content: center; gap: clamp(40px, 5.5vw, 96px); padding-inline: clamp(24px, 5vw, 80px); text-align: left; }
