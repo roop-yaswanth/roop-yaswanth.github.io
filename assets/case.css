@@ -41,6 +41,7 @@ html:has(.case-page) { scroll-padding-top: var(--page-offset, 85px); }
 .chapter-label + .visually-hidden + .project-highlights { margin-top: 0; padding-top: 6px; border-top: 0; }
 .case-page .result-panel { margin-top: 25px; padding-top: 40px; }
 .evaluation-context h3 { margin-bottom: 22px; }
+.chart-second { margin-top: 56px; }
 .evaluation-context p { font-size: 1rem; color: var(--muted); }
 .case-page .engineering-section { background: #e7ebe9; color: var(--ink); }
 .case-page .engineering-section p, .case-page .engineering-section .small-label { color: #505957; }

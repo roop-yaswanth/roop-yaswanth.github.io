@@ -53,6 +53,8 @@
 @keyframes poppy-dizzy{25%{rotate:-14deg}50%{rotate:11deg}75%{rotate:-6deg}}
 .poppy-say{position:fixed;left:0;top:0;z-index:46;max-width:min(280px,calc(100vw - 24px));margin:0;padding:.5em .9em;border-radius:14px;background:#171717;color:#fff;font-size:13.5px;font-weight:550;line-height:1.3;letter-spacing:0;pointer-events:none;opacity:0;scale:.7;transition:opacity .18s,scale .35s var(--spring)}
 .poppy-say.is-showing{opacity:1;scale:1}
+.poppy-say.is-new{animation:poppy-pop .32s var(--spring)}
+@keyframes poppy-pop{from{scale:.86}}
 .poppy-say::after{content:'';position:absolute;left:var(--tail,50%);border:6px solid transparent;translate:-50% 0}
 .poppy-say.is-below::after{bottom:100%;border-bottom-color:#171717}
 .poppy-say.is-above::after{top:100%;border-top-color:#171717}
@@ -102,7 +104,8 @@
     place(); aim();
     const still = Math.abs(to.x - x) + Math.abs(to.y - y) < .6 && Math.abs(vx) + Math.abs(vy) < 6 && Math.abs(to.s - s) < .004;
     poppy.classList.toggle('is-flying', !still);
-    if (still && mode === 'homing') return dock();
+    // Home, she finishes her sentence before settling into the name.
+    if (still && mode === 'homing' && !bubble.classList.contains('is-showing')) return dock();
     frame = still && mode === 'perch' ? 0 : requestAnimationFrame(tick);
   };
   const run = () => { if (!frame && mode !== 'off' && mode !== 'home') { last = now(); frame = requestAnimationFrame(tick); } };
@@ -122,11 +125,11 @@
       vx = vy = vs = 0; name.classList.add('is-poppy-out'); show();
     }
     fly('perch');
-    greet() || (cool('launch', 20000) && fire('launch', null, 1));
+    hello();
   };
   const goHome = () => {
     if (mode === 'off' || mode === 'home') return;
-    if (Math.random() < .4 && cool('return', 20000)) fire('return', null, 1);
+    if (Math.random() < .4) once('return', 20000, 'return');
     fly('homing');
   };
 
@@ -188,12 +191,16 @@
     : /lonely|[Mm]iss you|I’ll miss|sulk/.test(line) ? 'sad'
     : '';
 
-  // Speech. Answers to the visitor (pokes, clicks, copying) wait 1.5 seconds since the last line, hovers 4.5,
-  // everything else 7; a sortie flies home once the bubble is gone.
-  let pools = {}, faces = {}, used = new Set(), lastSaid = -1e9, lastSortie = -1e9, hideTimer = 0;
+  // Speech. A line stays up until it has been read. After it ends, answers to the visitor (clicks, keys,
+  // events) may follow at once, hovers after 1.2 seconds and everything else after 4; an answer that comes
+  // mid-line waits its turn. Only direct answers (a poke, a copy, a pick, waking, coming back) interrupt, and
+  // never within 0.7 seconds of the last line. A sortie flies home once the bubble is gone.
+  let pools = {}, faces = {}, used = new Set(), lastSaid = -1e9, busyUntil = 0, next = null, lastSortie = -1e9, hideTimer = 0;
   try { used = new Set(JSON.parse(sessionStorage.getItem('poppy.used') || '[]')); } catch (_) {}
-  const GAP = [7000, 1500, 4500];
-  const can = (key, urgency = 0) => pools[key]?.length && mode !== 'off' && mode !== 'home' && !reduced() && !document.hidden && !root.classList.contains('trailer-open') && now() - lastSaid >= GAP[urgency];
+  const PAUSE = [4000, 0, 1200];
+  const able = key => pools[key]?.length && mode !== 'off' && mode !== 'home' && mode !== 'homing' && !reduced() && !document.hidden && !root.classList.contains('trailer-open');
+  const free = urgency => urgency === 3 ? now() - lastSaid >= 700 : now() >= busyUntil + PAUSE[urgency];
+  const can = (key, urgency = 0) => able(key) && free(urgency);
   const pick = key => {
     const list = pools[key], fresh = list.filter(l => !used.has(l));
     if (!fresh.length) list.forEach(l => used.delete(l));
@@ -212,16 +219,21 @@
   };
   const hush = () => {
     bubble.classList.remove('is-showing');
+    busyUntil = Math.min(busyUntil, now());
     if (mode === 'sortie') setTimeout(() => { if (mode === 'sortie' && !bubble.classList.contains('is-showing')) fly('perch'); }, 500);
+    setTimeout(() => { const n = next; next = null; if (n && now() - n.at < 6000) fire(n.key, n.el, 1, n.out); }, 250);
   };
-  // Say a line from a pool. With an element she looks at it, and a click, an opened topic or a section coming
-  // into view can send her out beside it, at most every 12 seconds.
+  // Say a line from a pool. With an element she looks at it, reading its figures or bars one by one, and a
+  // click, an opened topic or a section coming into view can send her out beside it, at most every 12 seconds.
   const fire = (key, el, urgency = 0, out = false) => {
-    if (!can(key, urgency)) return false;
+    if (!able(key)) return false;
+    if (!free(urgency)) { if (urgency === 1) next = {key, el, out, at: now()}; return urgency === 1; }
     let tag = '', line = pick(key).replace(/\s*\{([a-z]+)\}$/, (_, t) => { tag = t; return ''; });
-    const ms = Math.min(5200, 1700 + line.length * 55);
-    lastSaid = now();
+    const ms = Math.min(5200, 1700 + line.length * 55), again = bubble.classList.contains('is-showing');
+    lastSaid = now(); busyUntil = lastSaid + ms;
     bubble.textContent = line;
+    bubble.classList.remove('is-new');
+    if (again) { void bubble.offsetWidth; bubble.classList.add('is-new'); }
     bubble.classList.add('is-showing');
     placeBubble();
     clearTimeout(hideTimer);
@@ -229,10 +241,19 @@
     express(tag || faces[key] || guess(line), ms);
     if (el) {
       look(el, 3200);
+      const marks = [...el.querySelectorAll('.bar-row strong, .project-highlights dt, .results-table tbody tr')].slice(0, 6);
+      if (marks.length > 1) marks.forEach((m, i) => setTimeout(() => look(m, 1000), 350 + i * 450));
       if (out && mode === 'perch' && now() - lastSortie > 12000 && beside(el)) { focus = el; lastSortie = now(); fly('sortie'); }
     }
     return true;
   };
+  // A cooldown starts only when its line is said or queued, so a busy moment never loses it.
+  const cooled = {};
+  const once = (ck, ms, key, el = null, urgency = 1, out = false) => {
+    if (now() - (cooled[ck] || -1e9) < ms || !fire(key, el, urgency, out)) return false;
+    cooled[ck] = now(); return true;
+  };
+  const hello = () => greet() || (page === 'home' ? once('launch', 20000, 'launch') : Math.random() < .6 && fire('arrive', null, 1));
   const greet = () => {
     try { if (sessionStorage.getItem('poppy.hello')) return false; } catch (_) { return false; }
     const d = new Date(), h = d.getHours(), weekend = d.getDay() % 6 === 0 && Math.random() < .4;
@@ -249,14 +270,18 @@
     const key = entry.target.dataset.poppySeen;
     if (!entry.isIntersecting) pending.delete(key);
     else if (!done.has(key)) pending.set(key, entry.target);
-    else if (now() - seenAt[key] > 90000 && cool('revisit', 60000)) fire('revisit', entry.target, 0, true);
+    else if (now() - seenAt[key] > 90000) once('revisit', 60000, 'revisit', entry.target, 0, true);
   }) || trySeen(), {rootMargin: '0px 0px -40% 0px'});
+  const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > top() && r.top < innerHeight; };
   const trySeen = () => {
     for (const [key, el] of [...pending].reverse()) {
+      if (!onScreen(el)) { pending.delete(key); continue; }
       if (fire(key, el, 0, true)) { done.add(key); seenAt[key] = now(); pending.delete(key); }
       return;
     }
   };
+  // The last screen of a page never reaches the reading line, so at the bottom whatever is in view counts.
+  const sweep = () => document.querySelectorAll('[data-poppy-seen]').forEach(el => { if (!done.has(el.dataset.poppySeen) && onScreen(el)) pending.set(el.dataset.poppySeen, el); });
   const wire = list => list.forEach(([key, on, sel, lines, look]) => {
     pools[key] = (pools[key] || []).concat(lines);
     if (look && !faces[key]) faces[key] = look;
@@ -271,19 +296,21 @@
     try { el = target.closest?.(sel) || null; } catch (_) {}
     if (el) each(key, el);
   });
-  const cooled = {};
-  const cool = (key, ms) => { if (now() - (cooled[key] || -1e9) < ms) return false; cooled[key] = now(); return true; };
-  const hover = event => match('hover', event.target, (key, el) => { look(el); if (can(key, 2) && cool(key, 25000)) fire(key, el, 2); });
+  const hover = event => match('hover', event.target, (key, el) => { look(el); once(key, 25000, key, el, 2); });
   document.addEventListener('pointerover', event => { if (fine.matches) hover(event); });
   document.addEventListener('focusin', hover);
-  document.addEventListener('click', event => match('click', event.target, (key, el) => { if (can(key, 1) && cool(key, 8000)) fire(key, el, 1, true); }), true);
-  // On touch there's no pointer to follow, so she looks at whatever was just touched.
-  document.addEventListener('pointerdown', event => { if (!fine.matches && event.target.closest) look(event.target.closest('a, button, figure, section') || event.target, 1800); });
+  document.addEventListener('click', event => match('click', event.target, (key, el) => once(key, 8000, key, el, 1, true)), true);
+  // On touch there's no pointer to follow, so she looks at whatever was just touched, and tapping something
+  // that isn't a link or a click moment is the closest thing to hovering it.
+  document.addEventListener('pointerdown', event => {
+    if (fine.matches || !event.target.closest) return;
+    look(event.target.closest('a, button, figure, section') || event.target, 1800);
+    let clicky = !!event.target.closest('a[href]:not([href^="#"])');
+    match('click', event.target, () => { clicky = true; });
+    if (!clicky) match('hover', event.target, (key, el) => once(key, 25000, key, el, 2));
+  });
   document.addEventListener('toggle', event => { if (event.target.open) match('open', event.target, (key, el) => fire(key, el, 1, true)); }, true);
-  ['play', 'pause'].forEach(type => document.addEventListener(type, event => match(type, event.target, (key, el) => {
-    const r = el.getBoundingClientRect();
-    if (r.bottom > 0 && r.top < innerHeight && cool(key, 20000)) fire(key, el, 1);
-  }), true));
+  ['play', 'pause'].forEach(type => document.addEventListener(type, event => match(type, event.target, (key, el) => { if (onScreen(el)) once(key, 20000, key, el); }), true));
 
   // Taste, on the home page: after every third film picked in More like this, a read on the picks.
   const picks = [], kinds = {'your-name': 'animation', 'spirited-away': 'animation', 'spider-verse': 'animation', 'sita-ramam': 'telugu', 'rrr': 'telugu', 'dangal': 'india', 'the-matrix': 'action', 'mad-max': 'action', 'parasite': 'korean'};
@@ -293,13 +320,12 @@
     const seed = event.target.closest?.('[data-seed]')?.dataset.seed;
     if (!seed) return;
     clicks = clicks.filter(t => now() - t < 6000).concat(now());
-    if (clicks.length >= 5 && cool('picks-rapid', 30000)) { lastSaid = -1e9; fire('picks-rapid', null, 1); return; }
+    if (clicks.length >= 5 && once('picks-rapid', 30000, 'picks-rapid', null, 3)) return;
     if (!picks.includes(seed)) picks.push(seed);
     if (picks.length % 3) return;
     const recent = picks.slice(-3), count = kind => recent.filter(p => kinds[p] === kind || (kind === 'india' && kinds[p] === 'telugu') || (kind === 'action' && p === 'rrr')).length;
     const taste = count('telugu') >= 2 ? 'telugu' : count('animation') >= 2 ? 'animation' : count('india') >= 2 ? 'india' : count('action') >= 2 ? 'action' : new Set(recent.map(p => langs[p])).size >= 3 ? 'worldwide' : 'mixed';
-    lastSaid = -1e9;
-    fire(`taste-${taste}`, document.querySelector('.similar-results'), 1);
+    fire(`taste-${taste}`, document.querySelector('.similar-results'), 3);
   });
 
   // Always on: input wakes her, speed makes her dizzy, quiet makes her doze, and a quiet visitor who is still
@@ -307,18 +333,18 @@
   let lastInput = now(), lastScroll = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
   const wake = () => {
     lastInput = now(); idleSaid = false;
-    if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); lastSaid = -1e9; fire('wake', null, 1); aimSoon(); }
+    if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); fire('wake', null, 3); aimSoon(); }
   };
   ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(type => addEventListener(type, wake, {passive: true}));
   addEventListener('pointermove', event => {
     wake();
     if (!fine.matches || mode === 'off' || mode === 'home') return;
     pointer = [event.clientX, event.clientY]; aimSoon();
-    if (Math.hypot(event.clientX - x, event.clientY - y) < 56 && cool('near', 20000)) fire('near', null, 1);
+    if (Math.hypot(event.clientX - x, event.clientY - y) < 56) once('near', 20000, 'near');
     const dir = Math.sign(event.clientX - lastPX);
     if (dir && dir !== lastDir && Math.abs(event.clientX - lastPX) > 6) { shakes = shakes.filter(t => now() - t < 700).concat(now()); lastDir = dir; }
     lastPX = event.clientX;
-    if (shakes.length >= 6 && cool('shake', 20000)) { shakes = []; dizzy(); fire('shake', null, 1); }
+    if (shakes.length >= 6 && once('shake', 20000, 'shake')) { shakes = []; dizzy(); }
   }, {passive: true});
   addEventListener('scroll', () => {
     wake();
@@ -327,55 +353,54 @@
     if (mode === 'off' || mode === 'home') return;
     aimSoon();
     fast = Math.abs(v) > 3200 ? fast + 1 : 0;
-    if (fast > 2 && cool('fling', 15000)) { dizzy(); fire(v > 0 ? 'scroll-fast-down' : 'scroll-fast-up', null, 1); }
-    if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000 && cool('reading', 180000)) fire('reading'); } else readSince = 0;
-    if (innerHeight + scrollY >= root.scrollHeight - 40 && cool('bottom', 600000)) fire('bottom', null, 1);
-    if (scrollY < 40 && deep && page !== 'home' && cool('top', 60000)) fire('top', null, 1);
+    if (fast > 2 && once('fling', 15000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) dizzy();
+    if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000) once('reading', 180000, 'reading', null, 0); } else readSince = 0;
+    if (innerHeight + scrollY >= root.scrollHeight - 40) { sweep(); once('bottom', 600000, 'bottom'); }
+    if (scrollY < 40 && deep && page !== 'home') once('top', 60000, 'top');
     if (scrollY > 1500) deep = true;
   }, {passive: true});
   poppy.addEventListener('click', () => {
     pokes = pokes.filter(t => now() - t < 6000).concat(now());
     hop();
-    lastSaid = -1e9;
-    fire(pokes.length >= 4 ? 'poke-many' : 'poke', null, 1);
+    fire(pokes.length >= 4 ? 'poke-many' : 'poke', null, 3);
   });
   poppy.addEventListener('animationend', event => { if (event.animationName === 'poppy-hop') poppy.classList.remove('is-poked'); });
   let left = 0;
-  document.addEventListener('mouseout', event => { if (!event.relatedTarget && fine.matches) { left = now(); pointer = null; aimSoon(); if (cool('pointer-leave', 30000)) fire('pointer-leave', null, 1); } });
-  document.addEventListener('mouseover', event => { if (!event.relatedTarget && left && now() - left > 2500 && cool('pointer-return', 30000)) fire('pointer-return', null, 1); left = 0; });
+  document.addEventListener('mouseout', event => { if (!event.relatedTarget && fine.matches) { left = now(); pointer = null; aimSoon(); once('pointer-leave', 30000, 'pointer-leave'); } });
+  document.addEventListener('mouseover', event => { if (!event.relatedTarget && left && now() - left > 2500) once('pointer-return', 30000, 'pointer-return'); left = 0; });
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hiddenAt = now();
-    else if (hiddenAt && now() - hiddenAt > 4000) { lastSaid = -1e9; fire('away-back', null, 1); }
+    else if (hiddenAt && now() - hiddenAt > 4000) fire('away-back', null, 3);
   });
   let selTimer = 0;
   document.addEventListener('selectionchange', () => {
     clearTimeout(selTimer);
-    selTimer = setTimeout(() => { if (String(getSelection()).trim().length >= 15 && cool('select', 30000)) fire('select', null, 1); }, 700);
+    selTimer = setTimeout(() => { if (String(getSelection()).trim().length >= 15) once('select', 30000, 'select'); }, 700);
   });
-  document.addEventListener('copy', () => { lastSaid = -1e9; fire('copy', null, 1); });
+  document.addEventListener('copy', () => fire('copy', null, 3));
   addEventListener('keydown', event => {
-    if (event.key === 'Tab') { if (cool('keyboard', 600000)) fire('keyboard', null, 1); }
-    else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') { if (cool('find', 60000)) fire('find', null, 1); }
-    else if (event.key === 'Escape' && !root.classList.contains('trailer-open') && cool('escape', 30000)) fire('escape', null, 1);
+    if (event.key === 'Tab') once('keyboard', 600000, 'keyboard');
+    else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') once('find', 60000, 'find');
+    else if (event.key === 'Escape' && !root.classList.contains('trailer-open')) once('escape', 30000, 'escape');
   });
-  document.addEventListener('contextmenu', () => { if (cool('right-click', 60000)) fire('right-click', null, 1); });
-  document.addEventListener('dblclick', event => { if (!event.target.closest?.('a, button, input, summary, .poppy') && cool('double-click', 30000)) fire('double-click', null, 1); });
+  document.addEventListener('contextmenu', () => once('right-click', 60000, 'right-click'));
+  document.addEventListener('dblclick', event => { if (!event.target.closest?.('a, button, input, summary, .poppy')) once('double-click', 30000, 'double-click'); });
   let empties = [];
   document.addEventListener('click', event => {
     if (event.target.closest?.('a, button, summary, input, label, video, img, figure, details, [data-seed], .poppy')) return;
     empties = empties.filter(t => now() - t < 4000).concat(now());
-    if (empties.length >= 3 && cool('click-empty', 30000)) { empties = []; fire('click-empty', null, 1); }
+    if (empties.length >= 3 && once('click-empty', 30000, 'click-empty')) empties = [];
   });
-  addEventListener('hashchange', () => { let el = null; try { el = document.querySelector(location.hash); } catch (_) {} if (cool('jump', 15000)) fire('jump', el, 1); });
-  addEventListener('pageshow', event => { if (event.persisted) { lastSaid = -1e9; fire('back-forward', null, 1); } });
-  addEventListener('offline', () => { lastSaid = -1e9; fire('offline', null, 1); });
-  addEventListener('online', () => { lastSaid = -1e9; fire('online', null, 1); });
+  addEventListener('hashchange', () => { let el = null; try { el = document.querySelector(location.hash); } catch (_) {} once('jump', 15000, 'jump', el); });
+  addEventListener('pageshow', event => { if (event.persisted) fire('back-forward', null, 3); });
+  addEventListener('offline', () => fire('offline', null, 3));
+  addEventListener('online', () => fire('online', null, 3));
   let sizeTimer = 0;
-  addEventListener('resize', () => { run(); clearTimeout(sizeTimer); sizeTimer = setTimeout(() => { if (cool('resize', 60000)) fire('resize', null, 1); }, 600); });
+  addEventListener('resize', () => { run(); clearTimeout(sizeTimer); sizeTimer = setTimeout(() => once('resize', 60000, 'resize'), 600); });
   new MutationObserver(() => {
     const open = root.classList.contains('trailer-open');
-    if (!open && poppy.dataset.trailer) { delete poppy.dataset.trailer; setTimeout(() => { lastSaid = -1e9; fire('trailer-back', null, 1); }, 700); }
+    if (!open && poppy.dataset.trailer) { delete poppy.dataset.trailer; setTimeout(() => fire('trailer-back', null, 3), 700); }
     if (open) poppy.dataset.trailer = '1';
   }).observe(root, {attributes: true, attributeFilter: ['class']});
   const blink = () => setTimeout(() => {
@@ -389,15 +414,20 @@
   setInterval(() => {
     if (mode === 'off' || mode === 'home' || document.hidden) return;
     const quiet = now() - lastInput;
-    if (!dozing && quiet > 40000) { dozing = true; poppy.classList.add('is-dozing'); aim(); lastSaid = -1e9; fire('doze', null, 1); }
+    if (!dozing && quiet > 40000) { dozing = true; poppy.classList.add('is-dozing'); aim(); fire('doze', null, 3); }
     else if (dozing) { if (now() - lastSaid > 9000) fire('doze', null, 1); }
     else if (quiet > 12000 && !idleSaid) idleSaid = fire('idle');
-    else if (now() - started > 240000 && cool('long-visit', 1e9)) fire('long-visit');
-    else if (now() - started > 720000 && cool('very-long-visit', 1e9)) fire('very-long-visit');
+    else if (now() - started > 240000 && once('long-visit', 1e9, 'long-visit', null, 0)) return;
+    else if (now() - started > 720000 && once('very-long-visit', 1e9, 'very-long-visit', null, 0)) return;
     else if (pending.size) trySeen();
     else if (quiet < 15000 && now() - lastScroll > 3000 && now() - lastSaid > 38000) fire(ambient[Math.floor(Math.random() * ambient.length)]);
     if (!dozing && !face && !bubble.classList.contains('is-showing') && Math.random() < .07) express(IDLE[Math.floor(Math.random() * IDLE.length)], 1400);
   }, 2500);
+
+  // Lines load once the page is idle. If she flew out before they arrived, she says hello then.
+  const get = url => url ? fetch(url).then(r => r.json()) : Promise.resolve([]);
+  const loaded = new Promise(done => (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => Promise.all([get(script.dataset.pageLines), get(script.dataset.lines)]).then(([mine, all]) => { wire(mine); wire(all); }).catch(() => {}).then(done), {timeout: 2500}));
+  loaded.then(() => { if (page === 'home' && lastSaid < 0 && (mode === 'perch' || mode === 'sortie')) hello(); });
 
   // Start, and stop for reduced motion: she goes home (or away) at once and keeps quiet.
   const hasHome = name && letters.length === 2;
@@ -414,7 +444,7 @@
     const p = perch();
     x = p.x; y = p.y - 36; s = .4; vx = vy = vs = 0;
     mode = 'perch'; show(); run();
-    setTimeout(() => greet() || (Math.random() < .6 && fire('arrive', null, 1)), 900);
+    loaded.then(() => setTimeout(hello, 900));
   };
   document.addEventListener('motionchange', () => {
     if (!reduced()) { if (mode === 'off') start(); return; }
@@ -423,8 +453,5 @@
     if (name) name.classList.remove('is-poppy-out');
     mode = 'off';
   });
-  const get = url => url ? fetch(url).then(r => r.json()) : Promise.resolve([]);
-  const load = () => Promise.all([get(script.dataset.pageLines), get(script.dataset.lines)]).then(([mine, all]) => { wire(mine); wire(all); }).catch(() => {});
-  (window.requestIdleCallback || (f => setTimeout(f, 1500)))(load, {timeout: 2500});
   start();
 })();
