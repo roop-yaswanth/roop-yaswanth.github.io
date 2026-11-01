@@ -1,0 +1,199 @@
+/* A personal cover: the portrait spans the name and the two useful cards. */
+.identity-intro {
+  width: min(1480px, calc(100% - 112px));
+  margin-inline: auto;
+  padding: 48px 0 88px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .82fr) minmax(0, 1.3fr);
+  grid-template-rows: auto 1fr;
+  gap: 36px 24px;
+}
+.identity-heading { grid-column: 1 / 3; align-self: start; padding-top: 12px; }
+.identity-heading h1 { overflow-wrap: anywhere; font-weight: 600; letter-spacing: -.07em; }
+.identity-heading h1 > span:first-child { display: block; font-size: clamp(3.5rem, 6.1vw, 6.3rem); line-height: 1.02; }
+.identity-surname { display: block; font-size: clamp(1.35rem, 1.8vw, 1.8rem); line-height: 1.3; letter-spacing: -.035em; margin-top: 12px; font-weight: 450; }
+.identity-grid { display: contents; }
+.identity-copy { grid-column: 1; grid-row: 2; min-width: 0; overflow-wrap: break-word; padding: 8px 15px 4px 0; display: flex; flex-direction: column; align-items: flex-start; }
+.identity-copy .identity-lead { font-size: clamp(1.5rem, 2.05vw, 2rem); line-height: 1.22; letter-spacing: -.035em; max-width: 390px; color: var(--ink); }
+.identity-copy > p + p { font-size: 1.0625rem; line-height: 1.6; color: #505050; margin-top: 22px; max-width: 370px; }
+.identity-copy .primary-link { margin-top: auto; gap: 15px; }
+.identity-copy > p:last-of-type { margin-bottom: 28px; }
+/* The work index: the range of the work, one line per area, each a jump to the work itself. */
+.work-index { width: 100%; max-width: 370px; margin-bottom: 30px; }
+.work-index dl { margin: 0; border-bottom: 1px solid var(--line); }
+.work-index dl > div { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); column-gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .9375rem; line-height: 1.5; }
+.work-index dt { color: var(--muted); }
+.work-index dd { margin: 0; }
+.work-index a { color: var(--ink); text-decoration: underline 1px; text-decoration-color: #c4beb4; text-underline-offset: 3px; transition: text-decoration-color .2s; }
+.work-index a:hover { text-decoration-color: currentColor; }
+.identity-copy .primary-link svg, .tile-action svg, .portrait-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; flex: 0 0 20px; }
+/* Googly o's: the letters stay letters, set a touch closer, and a loose pupil rolls inside each
+   counter. The defaults fit the system sans on macOS; the script refits them to the rendered font.
+   At rest they wear the mark's expression: the first pupil sits low, the second keeps glancing up and
+   out, the curious one. Dozing, both sink. Without scripts or with reduced motion this is the page. */
+.identity-heading h1 { --eye-cx: .2775em; --eye-cy: .625em; --eye-w: .25em; --eye-h: .34em; --eye-p: .14em; }
+.eye-letter { position: relative; display: inline-block; isolation: isolate; }
+.eye-letter + .eye-letter { margin-left: -.03em; }
+.eye-letter::before { content: ''; position: absolute; z-index: -1; width: calc(var(--eye-w) + .04em); height: calc(var(--eye-h) + .04em); left: var(--eye-cx); top: var(--eye-cy); transform: translate(-50%,-50%); border-radius: 50%; background: #fff; box-shadow: inset 0 .025em .05em #17171717; }
+.eye-pupil { position: absolute; width: var(--eye-p); height: var(--eye-p); left: var(--eye-cx); top: var(--eye-cy); border-radius: 50%; background: radial-gradient(circle at 34% 30%, #fff 0 11%, transparent 13%), #171717; transform: translate(calc(-50% + var(--eye-x, var(--rest-x, 0px))), calc(-50% + var(--eye-y, var(--rest-y, (var(--eye-h) - var(--eye-p)) / 2 - .01em)))) scale(var(--eye-s, 1)); }
+.eye-letter + .eye-letter .eye-pupil { --rest-x: calc(((var(--eye-w) - var(--eye-p)) / 2 - .01em) * .7); --rest-y: calc(((var(--eye-h) - var(--eye-p)) / 2 - .01em) * -.55); }
+.identity-heading h1.is-drowsy .eye-pupil { --rest-x: 0px; --rest-y: calc((var(--eye-h) - var(--eye-p)) / 2 - .01em); }
+/* Lids close down over the white from above. Closed, the o reads as a solid dot; half closed, sleepy. */
+@property --eye-close { syntax: '<number>'; inherits: true; initial-value: 0; }
+.eye-letter::after { content: ''; position: absolute; z-index: 1; width: calc(var(--eye-w) + .05em); height: calc(var(--eye-h) + .05em); left: var(--eye-cx); top: var(--eye-cy); transform: translate(-50%,-50%); border-radius: 50%; background: currentColor; clip-path: ellipse(110% calc(var(--eye-close) * 125%) at 50% 0); pointer-events: none; }
+.identity-heading h1 { transition: --eye-close 1.1s ease-in-out; }
+.identity-heading h1.is-drowsy { --eye-close: .5; }
+.identity-heading h1.is-blinking { animation: eye-blink .2s ease-in-out var(--blinks, 1); }
+@keyframes eye-blink { 0%, 100% { --eye-close: 0; } 45%, 55% { --eye-close: 1; } }
+.eye-quip-anchor { position: absolute; z-index: 2; left: 0; top: calc(var(--eye-cy) - var(--eye-h) / 2 - .12em); width: 0; height: 0; pointer-events: none; }
+.eye-quip { position: absolute; left: 0; bottom: 8px; padding: .45em .85em; border-radius: 999px; background: #171717; color: #fff; font-size: clamp(12px, .15em, 15px); font-weight: 550; letter-spacing: 0; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; transform-origin: 50% 100%; }
+.eye-quip::after { content: ''; position: absolute; left: 50%; top: 100%; border: 5px solid transparent; border-top-color: #171717; transform: translateX(-50%); }
+.eye-quip.is-showing { animation: eye-quip 1.9s var(--spring) both; }
+/* Printed, the eyes keep one line for paper: a still pair looking up at it. */
+.print-quip { display: none; }
+@keyframes eye-quip { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.6); } 14%, 82% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -4px) scale(.96); } }
+.portrait-card { grid-column: 3; grid-row: 1 / 3; min-width: 0; --portrait-height: 590px; min-height: var(--portrait-height); position: relative; isolation: isolate; background: transparent; }
+.portrait-front { position: absolute; inset: 0; z-index: 2; display: block; list-style: none; cursor: pointer; border-radius: 22px; }
+.portrait-front::-webkit-details-marker { display: none; }
+.portrait-front:focus-visible { outline: 3px solid #1c5ed0; outline-offset: 5px; }
+/* The portrait is a two-sided card with the credits on its back. Pointed at for a moment, or tapped, it
+   turns with weight and no bounce, and turns back the same way. */
+.portrait-card { --turn: .7s cubic-bezier(.4, .05, .2, 1); }
+.portrait-visual { position: absolute; inset: 0; display: block; pointer-events: none; overflow: hidden; border-radius: 24px; backface-visibility: hidden; transform: perspective(1600px) rotateY(0); transition: transform var(--turn); }
+.portrait-visual img { width: 100%; max-width: none; height: 100%; object-fit: contain; object-position: center bottom; transform-origin: 50% 100%; }
+.portrait-note { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: safe center; padding: clamp(28px,2.6vw,44px) clamp(24px,2.6vw,40px); border-radius: 24px; background: #121110; color: #f4f1ea; text-align: center; font-size: clamp(.8125rem, .5rem + .5vw, .9375rem); line-height: 1.5; overflow: hidden auto; overflow-wrap: break-word; pointer-events: none; backface-visibility: hidden; }
+.portrait-note-title { font-size: clamp(1.75rem,2.5vw,2.5rem); line-height: 1.1; letter-spacing: -.045em; font-weight: 550; color: #fff; }
+.credits-list { display: grid; gap: 16px; margin: 26px 0 0; }
+.credits-list dt { font-size: .875rem; color: #aaa397; }
+.credits-list dt b { margin-left: .2em; font-size: 1.1875rem; font-weight: 550; letter-spacing: -.02em; color: #fff; }
+.credits-list dd { max-width: 28em; margin: 3px auto 0; color: #d3cdc2; text-wrap: balance; }
+.credits-twist { margin-top: 20px; font-size: 1.5rem; font-weight: 600; letter-spacing: -.035em; line-height: 1.2; color: #fff; }
+.credits-small { max-width: 30em; margin: 12px auto 0; font-size: .8125rem; color: #aaa397; text-wrap: balance; }
+.credits-twist + .credits-small { margin-top: 18px; }
+.portrait-note a { position: relative; pointer-events: auto; display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; font-size: .9375rem; color: #fff; text-decoration-color: #fff8; }
+.portrait-note a:focus-visible { outline-color: #9dbcff; }
+.portrait-details[open] .portrait-visual { transform: perspective(1600px) rotateY(180deg); }
+.portrait-details[open] .portrait-note { animation: portrait-turn var(--turn); }
+.portrait-details.is-js:not(.is-turned) .portrait-visual { transform: perspective(1600px) rotateY(0); }
+@keyframes portrait-turn { from { transform: perspective(1600px) rotateY(-180deg); } to { transform: perspective(1600px) rotateY(0); } }
+/* With scripts (app.js), is-turned drives both faces by transition, so a turn can reverse midway; the card
+   stays open while the back turns away. */
+.portrait-details.is-js .portrait-note { animation: none; transform: perspective(1600px) rotateY(-180deg); transition: transform var(--turn); }
+.portrait-details.is-js.is-turned .portrait-note { transform: perspective(1600px) rotateY(0); }
+.identity-links { grid-column: 2; grid-row: 2; display: grid; grid-template-rows: 1.12fr 1fr; gap: 18px; min-width: 0; }
+.identity-tile { min-width: 0; overflow-wrap: break-word; border-radius: 22px; display: flex; flex-direction: column; justify-content: flex-start; padding: 23px; text-decoration: none; transition: background .25s, transform .65s var(--spring); }
+.identity-tile:hover { text-decoration: none; }
+.research-tile { background: #e6e9f1; color: #212b43; }
+.resume-tile { background: #eeede8; color: #272727; }
+.tile-label { font-size: .8125rem; line-height: 1.4; margin-bottom: 16px; }
+.tile-title { font-size: clamp(1.25rem, 1.75vw, 1.6rem); line-height: 1.18; letter-spacing: -.035em; font-weight: 550; }
+.tile-description { font-size: .875rem; line-height: 1.45; margin-top: 12px; }
+.tile-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 25px; margin-top: auto; font-size: .8125rem; line-height: 1.35; }
+.tile-action svg { transition: transform .55s var(--spring); }
+.identity-tile:hover .tile-action, .identity-tile:focus-visible .tile-action { text-decoration: underline; text-underline-offset: 4px; }
+.identity-tile:hover .tile-action svg, .identity-tile:focus-visible .tile-action svg { transform: translateX(4px); }
+@media (hover: hover) and (pointer: fine) {
+ .identity-tile:hover { transform: translateY(-5px); }
+ .research-tile:hover { background: #dbe1ef; }
+ .resume-tile:hover { background: #e6e4dd; }
+}
+.identity-tile:active { transform: scale(.985); }
+.identity-arriving .portrait-visual img { animation: portrait-arrive 1.25s both; }
+@keyframes portrait-arrive {
+ 0% { transform: translateY(32px) rotate(-2deg) scale(1.07); animation-timing-function: cubic-bezier(.18,.8,.3,1); }
+ 63% { transform: translateY(-5px) rotate(.3deg) scale(1.035); animation-timing-function: ease-in-out; }
+ 83% { transform: translateY(1.5px) rotate(-.1deg) scale(1.035); animation-timing-function: ease-out; }
+ 100% { transform: none; }
+}
+.identity-intro + .cinema-intro { border-top: 1px solid var(--line); }
+.cinema-heading h2 { font-size: clamp(92px, 15vw, 218px); font-weight: 650; letter-spacing: -.065em; line-height: .92; }
+@media (min-width: 1600px) {
+ .identity-intro { padding-top: 64px; padding-bottom: 110px; gap: 48px 28px; }
+ .portrait-card { --portrait-height: 700px; min-height: var(--portrait-height); }
+ .identity-copy { padding-right: 30px; }
+ .identity-copy > p + p { font-size: 1.1875rem; }
+ .identity-tile { padding: 28px; }
+ .tile-label, .tile-action { font-size: .9375rem; }
+ .tile-description { font-size: 1.0625rem; }
+}
+@media (max-width: 1100px) {
+ .identity-intro { width: calc(100% - 72px); grid-template-columns: minmax(0, 1fr) minmax(0, 1.03fr); gap: 28px; padding: 36px 0 64px; }
+ .identity-heading { grid-column: 1; grid-row: 1; padding: 0; }
+ .identity-heading h1 > span:first-child { font-size: clamp(3.5rem, 7.5vw, 5.5rem); max-width: 8ch; }
+ .identity-copy { grid-column: 1; grid-row: 2; padding: 0 12px 0 0; }
+ .identity-copy .identity-lead { font-size: 1.625rem; }
+ .identity-copy > p + p { font-size: 1rem; }
+ .portrait-card { grid-column: 2; grid-row: 1 / 3; --portrait-height: 555px; min-height: var(--portrait-height); }
+ .identity-links { grid-column: 1 / -1; grid-row: 3; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto; gap: 24px; }
+ .identity-tile { padding: 28px; }
+ .tile-title { font-size: 1.625rem; }
+ .tile-label, .tile-description, .tile-action { font-size: .9375rem; }
+ .portrait-note { padding: 22px 26px; }
+ .credits-list { gap: 12px; margin-top: 20px; }
+ .credits-twist { margin-top: 14px; font-size: 1.375rem; }
+ .credits-small { margin-top: 10px; }
+ .portrait-note a { margin-top: 2px; }
+}
+@media (max-width: 760px) {
+ .identity-intro { width: calc(100% - 48px); gap: 26px 20px; }
+ .identity-copy .identity-lead { font-size: 1.5rem; }
+ .identity-copy > p + p { font-size: 1rem; }
+ .identity-surname { font-size: 1.375rem; }
+ .portrait-card { --portrait-height: 530px; min-height: var(--portrait-height); }
+ .portrait-note { padding: 26px 22px; }
+ .portrait-note-title { font-size: 1.875rem; }
+ .cinema-heading h2 { font-size: 14.8vw; }
+}
+@media (max-width: 560px) {
+ .identity-intro { width: calc(100% - 40px); padding: 30px 0 48px; display: block; }
+ .identity-heading { margin-bottom: 28px; }
+ .identity-heading h1 > span:first-child { font-size: clamp(3.125rem, 15.6vw, 4.875rem); line-height: 1.02; }
+ .identity-surname { font-size: 1.4375rem; margin-top: 8px; }
+ .identity-grid { display: flex; flex-direction: column; gap: 28px; }
+ .identity-copy { padding: 0; }
+ .identity-copy .identity-lead { font-size: 1.75rem; }
+ .identity-copy > p + p { font-size: 1.0625rem; margin-top: 19px; }
+ .identity-copy > p:last-of-type { margin-bottom: 25px; }
+ .portrait-card { --portrait-height: 440px; min-height: var(--portrait-height); width: 100%; aspect-ratio: .76; }
+ .portrait-visual img { object-position: center bottom; }
+ .portrait-note { position: relative; min-height: var(--portrait-height); padding: 32px 24px; }
+ .portrait-details[open] { aspect-ratio: auto; }
+ .portrait-note-title { font-size: 1.875rem; }
+ .identity-links { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 12px; }
+ .identity-tile { padding: 21px 17px; border-radius: 18px; }
+ .tile-label { font-size: .75rem; margin-bottom: 14px; }
+ .tile-title { font-size: 1.375rem; }
+ .tile-description { font-size: .875rem; }
+ .tile-action { font-size: .75rem; gap: 5px; }
+ .tile-action svg { width: 17px; flex-basis: 17px; }
+ .cinema-heading h2 { font-size: 16vw; letter-spacing: -.06em; }
+}
+@media (max-width: 360px) {
+ .identity-copy .identity-lead { font-size: 1.625rem; }
+ .identity-links { grid-template-columns: 1fr; gap: 14px; }
+ .identity-tile { padding: 23px; }
+ .tile-title { font-size: 1.6875rem; }
+ .tile-label, .tile-description, .tile-action { font-size: .875rem; }
+ .portrait-card { --portrait-height: 390px; min-height: var(--portrait-height); }
+ .portrait-note { padding: 25px 20px; }
+ .portrait-note-title { font-size: 1.625rem; }
+}
+@media (prefers-reduced-motion: reduce) { .portrait-visual img, .identity-tile { transform: none !important; } }
+html[data-reduce-motion="true"] .portrait-visual img, html[data-reduce-motion="true"] .identity-tile { transform: none !important; }
+@media (forced-colors: active) { .portrait-card, .identity-tile { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
+@media print {
+ .identity-intro { width: 100%; padding: 15pt 0; display: block; }
+ .identity-heading h1 > span:first-child { font-size: 36pt; max-width: none; }
+ .identity-surname { font-size: 18pt; }
+ .identity-grid { display: block; }
+ .identity-copy .identity-lead { font-size: 18pt; max-width: none; }
+ .identity-copy > p + p { font-size: 11pt; max-width: none; }
+ .portrait-card, .identity-links, .eye-quip-anchor { display: none; }
+ .identity-intro { padding-top: 30pt; }
+ .identity-heading h1 { --eye-close: 0 !important; }
+ .eye-pupil, .print-quip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+ .eye-pupil { --eye-x: calc(((var(--eye-w) - var(--eye-p)) / 2 - .01em) * .6) !important; --eye-y: calc(((var(--eye-h) - var(--eye-p)) / 2 - .01em) * -.75) !important; --eye-s: 1 !important; }
+ .print-quip { display: block; position: absolute; left: 70%; bottom: 96%; padding: 3pt 7pt; border-radius: 999px; background: #171717; color: #fff; font-size: 9pt; font-weight: 550; letter-spacing: 0; line-height: 1.2; white-space: nowrap; }
+ .print-quip::after { content: ''; position: absolute; left: 7pt; top: 100%; border: 3.5pt solid transparent; border-top-color: #171717; border-left-color: #171717; }
+ .cinema-heading h2 { font-size: 30pt; }
+}

@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#faf9f6"><link rel="icon" href="data:,"><title>Page not found | Roop Yaswanth</title><meta name="description" content="Return to the portfolio."><meta property="og:type" content="website"><meta property="og:title" content="Page not found | Roop Yaswanth"><meta property="og:description" content="Return to the portfolio."><link rel="canonical" href="https://roop-yaswanth.github.io/404.html"><meta property="og:url" content="https://roop-yaswanth.github.io/404.html"><meta property="og:image" content="https://roop-yaswanth.github.io/assets/social-card.jpg?v=f9ed64db02"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Roop Yaswanth Nagabhairava, research engineer at the University of Florida, with an illustrated portrait."><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/styles.css?v=46c344ee8e2e"><script>try{if(localStorage.getItem("roop.reduceMotion")==="true")document.documentElement.dataset.reduceMotion="true"}catch(e){}</script><script>(() => {
+const root = document.documentElement;
+const titles = {'/work/cinematch/': '#cinema-title', '/work/soundvector/': '#sound-title', '/work/mri/': '#mri-title'};
+const every = Object.values(titles).concat('#case-title').join();
+const inputs = ['pointerdown', 'wheel', 'touchstart', 'keydown'];
+const reduced = () => root.dataset.reduceMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const path = url => new URL(url, location.href).pathname.replace(/index\.html$/, '');
+const pick = url => {
+if (!url) return null;
+const here = path(location.href), there = path(url);
+const selector = here === '/' ? titles[there] : there === '/' && titles[here] ? '#case-title' : '';
+return selector ? document.querySelector(selector) : null;
+};
+const reset = () => document.querySelectorAll(every).forEach(el => { el.style.viewTransitionName = el.style.translate = ''; });
+const name = el => { el.classList.remove('focus-armed'); el.style.viewTransitionName = 'project-title'; };
+const depart = el => {
+const box = el.getBoundingClientRect();
+const shift = box.bottom < 0 ? -box.bottom : box.top > innerHeight ? innerHeight - box.top : 0;
+if (shift) el.style.translate = `0 ${shift}px`;
+name(el);
+};
+addEventListener('pageswap', event => {
+const transition = event.viewTransition;
+if (!transition) return;
+if (reduced()) return transition.skipTransition();
+const title = pick(event.activation?.entry?.url);
+if (title) depart(title);
+});
+addEventListener('pagereveal', event => {
+reset();
+const transition = event.viewTransition;
+if (!transition) return;
+if (reduced()) return transition.skipTransition();
+const title = pick(window.navigation?.activation?.from?.url);
+if (title) name(title);
+const stop = () => transition.skipTransition();
+const done = () => { inputs.forEach(type => removeEventListener(type, stop, true)); reset(); };
+inputs.forEach(type => addEventListener(type, stop, {capture: true, passive: true}));
+transition.finished.then(done, done);
+});
+})();</script><script src="/assets/app.js?v=2e12b82d656b" defer></script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "Person", "name": "Roop Yaswanth Nagabhairava", "jobTitle": "Research Engineer", "sameAs": ["https://github.com/Geek-yash666", "https://github.com/roop-yaswanth", "https://www.linkedin.com/in/roop-yaswanth-nagabhairava-875b52201/", "https://www.credly.com/users/nagabhairava-roop-yaswanth.86a6b0ae"], "url": "https://roop-yaswanth.github.io"}</script></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><div class="nav-wrap"><a class="brand" href="/">Roop Yaswanth</a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" hidden>Menu</button><nav id="primary-nav" aria-label="Main navigation"><a href="/#work">Work</a><a href="/#research">Research</a><a href="/#resume">Resume</a><a href="/#contact">Contact</a></nav></div></header><main id="main" tabindex="-1" class="not-found section-width"><span class="googly-pair googly-lost" aria-hidden="true"><span class="googly"><i></i></span><span class="googly"><i></i></span></span><h1>Page not found</h1><p>This address is no longer available.</p><a class="text-link" href="/">Return to the portfolio</a></main><footer class="site-footer section-width"><span>© 2026 Roop Yaswanth Nagabhairava</span><button class="motion-toggle" type="button" aria-pressed="false" hidden>Reduce motion</button></footer></body></html>

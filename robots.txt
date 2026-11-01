@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://roop-yaswanth.github.io/sitemap.xml

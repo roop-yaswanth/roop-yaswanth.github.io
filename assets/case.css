@@ -1,0 +1,210 @@
+/* Project subpages keep the portfolio context visible throughout the story. */
+html:has(.case-page) { scroll-padding-top: var(--page-offset, 85px); }
+.case-page section[id] { scroll-margin-top: 0; }
+.case-page section:focus { outline: none; }
+.case-opening { text-align: center; padding-top: clamp(52px,7vw,96px); }
+.chapter-label { color: var(--muted); font-size: .875rem; letter-spacing: 0; line-height: 1.5; font-weight: 500; margin-bottom: 22px; }
+.case-opening h1 { font-size: clamp(3.2rem,10vw,8.25rem); letter-spacing: -.065em; line-height: .98; overflow-wrap: anywhere; }
+.case-opening-deck { font-size: clamp(2rem,4.2vw,3.5rem); line-height: 1.1; letter-spacing: -.045em; margin-top: 27px; font-weight: 550; }
+.case-opening-intro { max-width: 640px; margin: 24px auto 0; font-size: 1.125rem; color: var(--muted); line-height: 1.65; }
+.case-opening h1 + .case-opening-intro { margin-top: 32px; }
+.case-opening .project-actions { justify-content: center; gap: 28px; margin-top: 28px; }
+.project-actions a { gap: 10px; }
+.case-opening .minor { margin-top: 12px; }
+.case-opening .case-meta { margin-top: 64px; padding-block: 28px; text-align: left; gap: 32px; }
+.case-meta dt { font-size: .8125rem; }
+.case-meta dd { font-size: .9375rem; }
+.case-page h2 { font-size: clamp(2.2rem,4.2vw,3.6rem); line-height: 1.08; }
+.case-page h3 { font-size: clamp(1.375rem,2.2vw,1.75rem); line-height: 1.15; }
+.case-question { border-top: 1px solid var(--line); padding-block: 76px 90px; }
+.case-prose p, .evaluation-intro > p:last-child { font-size: 1.0625rem; }
+.case-prose .large-copy, .large-copy { font-size: clamp(1.4rem,2.4vw,1.8rem); }
+.case-product { padding: 88px 0; background: #efeee9; }
+.chapter-intro > p:last-child { max-width: 600px; margin-top: 26px; font-size: 1.125rem; color: var(--muted); }
+.case-product .product-showcase { padding-top: 52px; padding-bottom: 32px; }
+.case-product .product-showcase > h3 { font-size: 1rem; font-weight: 500; letter-spacing: 0; margin-bottom: 20px; color: var(--muted); }
+.case-product .gallery-image { box-shadow: 0 18px 45px #18130c16; }
+.product-principles { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 40px; padding-top: 34px; border-top: 1px solid #d3d1cb; }
+.product-principles p { font-size: 1rem; color: var(--muted); margin-top: 15px; }
+.case-page .system-section { background: var(--canvas); }
+.case-page .system-section, .case-page .evaluation-section, .case-page .engineering-section { padding-block: 90px; }
+.case-page .system-lead { font-size: 1.125rem; }
+.case-page .architecture-flow { gap: 20px; }
+.case-page .flow-source { border: 0; background: #efeee9; border-radius: 16px; padding: 32px; }
+.case-page .flow-source h3 { margin-top: 0; }
+.flow-tag { display: block; margin-top: 18px; font-size: .8125rem; color: #595959; }
+.case-page .flow-result { background: #293b37; border-radius: 16px; }
+.case-page .flow-merge::before, .case-page .flow-merge::after { content: ''; height: 20px; width: 1px; background: #b8beb8; }
+.case-page .evaluation-section { border-top: 1px solid var(--line); }
+.case-page .project-highlights { width: 100%; margin-top: 46px; padding-block: 36px; }
+/* Figures that open a section straight after its label follow it closely, with no rule between. */
+.chapter-label + .visually-hidden + .project-highlights { margin-top: 0; padding-top: 6px; border-top: 0; }
+.case-page .result-panel { margin-top: 25px; padding-top: 40px; }
+.evaluation-context h3 { margin-bottom: 22px; }
+.evaluation-context p { font-size: 1rem; color: var(--muted); }
+.case-page .engineering-section { background: #e7ebe9; color: var(--ink); }
+.case-page .engineering-section p, .case-page .engineering-section .small-label { color: #505957; }
+.case-page .engineering-grid article { border-top: 1px solid #bdc7c2; padding-top: 28px; }
+.case-page .engineering-grid p { font-size: 1rem; }
+.case-reflection { border-bottom: 1px solid var(--line); }
+.case-next { display: grid; grid-template-columns: 1.2fr 1fr; gap: 80px; padding-block: 70px 96px; align-items: center; }
+.case-next > div { width: auto; }
+.case-next p:not(.chapter-label) { font-size: 1.0625rem; color: var(--muted); margin-top: 24px; max-width: 440px; }
+.case-next-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.case-next-actions .text-link + .text-link { margin-left: 0; }
+.case-next-actions .button { gap: 12px; }
+@media(max-width: 900px) {
+ .product-principles { gap: 26px; }
+}
+@media(max-width: 600px) {
+ .case-opening { padding-top: 48px; }
+ .case-opening-deck { font-size: 2rem; }
+ .case-opening-intro { font-size: 1rem; }
+ .case-opening .case-meta { margin-top: 38px; gap: 20px; }
+ .case-meta > div { display: block; }
+ .case-meta dd { margin-top: 5px; }
+ .chapter-label { margin-bottom: 16px; }
+ .case-question, .case-page .system-section, .case-page .evaluation-section, .case-page .engineering-section, .case-product { padding-block: 56px; }
+ .case-product .product-showcase { padding-top: 30px; }
+ .product-principles { grid-template-columns: 1fr; gap: 28px; }
+ .case-next { grid-template-columns: 1fr; gap: 32px; padding-block: 52px 64px; }
+ .case-next-actions { gap: 12px; }
+ .case-page .flow-source { padding: 26px; }
+}
+@media print { .case-contents { display: none; } .case-opening { padding-top: 20pt; } .case-product, .case-page .engineering-section { background: white; } .case-next { display: none; } }
+
+.case-page .evaluation-intro > p { margin-top: 0; }
+#methodology { scroll-margin-top: var(--page-offset,85px); }
+/* Contents. The global header stays the only navigation bar. Below 1440px the sections are listed
+   once, in the opening, as a last row of the project facts. From 1440px the same list becomes a quiet
+   rail in the left margin that marks the section being read: a line that grows, never a dot. */
+.case-contents { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 32px; align-items: center; padding-block: 18px 22px; border-top: 1px solid var(--line); text-align: left; }
+.case-contents-title { font-size: .8125rem; font-weight: 600; }
+.case-contents ol { grid-column: span 2; display: flex; flex-wrap: wrap; gap: 0 28px; list-style: none; margin: 0; padding: 0; }
+.case-contents li:first-child { display: none; }
+.case-contents a { display: inline-flex; align-items: center; min-height: 44px; font-size: .9375rem; color: var(--ink); text-underline-offset: 5px; }
+@media (max-width: 600px) { .case-contents { grid-template-columns: 1fr; padding-top: 22px; } .case-contents ol { grid-column: auto; gap: 0 22px; } }
+@media (min-width: 1440px) {
+ .case-contents { display: block; position: fixed; z-index: 20; top: 50%; right: calc(50% + 576px + 28px); transform: translateY(-50%); padding: 0; border: 0; text-align: right; }
+ .case-contents-title { display: none; }
+ .case-contents ol { display: block; }
+ .case-contents li:first-child { display: list-item; }
+ .case-contents a { display: flex; justify-content: flex-end; gap: 10px; min-height: 40px; font-size: .8125rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+ .case-contents a::after { content: ''; width: 8px; height: 1px; background: currentColor; transition: width .45s var(--spring); }
+ .case-contents a:hover, .case-contents a[aria-current] { color: var(--ink); }
+ .case-contents a[aria-current] { font-weight: 600; }
+ .case-contents a[aria-current]::after { width: 18px; }
+}
+
+/* "language" in other languages (app.js). The real word keeps its place; the visual copy is aria-hidden. */
+.polyglot { position: relative; display: inline-block; }
+.polyglot.is-speaking { -webkit-text-fill-color: transparent; }
+.polyglot-voice { position: absolute; inset: 0; text-align: center; white-space: nowrap; -webkit-text-fill-color: currentColor; }
+
+/* The pipeline mixes on arrival (app.js): the line into late fusion draws, the weights roll in,
+   the line out draws and the shortlist lands. At rest it is the diagram as designed. */
+.case-page .flow-merge::before, .case-page .flow-merge::after { clip-path: inset(0); transition: clip-path .45s cubic-bezier(.3,.7,.2,1); }
+.flow-weight .odo-digit { line-height: 1.1; }
+.architecture-flow.is-armed .flow-merge::before, .architecture-flow.is-armed .flow-merge::after { clip-path: inset(0 0 100% 0); }
+.architecture-flow.is-armed .flow-merge > *, .architecture-flow.is-armed .flow-result { opacity: 0; }
+.architecture-flow.is-mixing .flow-merge::before { transition-delay: .15s; }
+.architecture-flow.is-mixing .flow-merge::after { transition-delay: 1.15s; }
+.architecture-flow.is-mixing .flow-merge > * { animation: flow-in .5s ease-out .55s backwards; }
+.architecture-flow.is-mixing .flow-result { animation: flow-land .8s var(--spring) 1.45s backwards; }
+@keyframes flow-in { from { opacity: 0; } }
+@keyframes flow-land { from { opacity: 0; transform: translateY(18px); } }
+@media print { .architecture-flow .flow-merge > *, .architecture-flow .flow-result { opacity: 1 !important; } .case-page .flow-merge::before, .case-page .flow-merge::after { clip-path: none !important; } .polyglot { -webkit-text-fill-color: currentColor !important; } .polyglot-voice { display: none; } }
+
+/* Evaluation details opens like every other disclosure on the site: a chevron at the right. */
+.methodology summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.methodology summary::-webkit-details-marker { display: none; }
+.methodology summary svg { width: 20px; flex: 0 0 20px; stroke: currentColor; stroke-width: 1.5; fill: none; transition: transform .65s var(--spring); }
+.methodology[open] summary svg { transform: rotate(180deg); }
+
+/* A results table for case studies that compare models: model names lead, figures align on the right. */
+.results-table-wrap { margin-top: 44px; overflow-x: auto; }
+.results-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.results-table th, .results-table td { padding: 14px 18px 14px 0; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.results-table thead th { font-size: .8125rem; font-weight: 500; color: var(--muted); }
+.results-table tbody th { font-weight: 600; }
+.results-table td:nth-child(n+4), .results-table th:nth-child(n+4) { text-align: right; }
+.case-product .mri-volume { margin-block: 40px 0; }
+.case-product .volume-play { background: #fff; }
+.case-product .volume-play:hover { background: #f6f5f1; }
+
+/* Figures that play once when first read (data-play, app.js): the finished figure is the page, and the
+   armed state below is only ever applied on screen, below the first view, with motion allowed. */
+/* MRI models: five real slices of one scan stand in depth. The stack fans out, the missing middle slice
+   resolves, then the neighbours each model reads are outlined: solid for two, dashed for the outer pair. */
+.slice-stack { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 56px; align-items: center; margin-top: 48px; }
+.stack-scene { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; height: clamp(320px, 34vw, 440px); background: #0b0c0d; border-radius: 14px; perspective: 1500px; overflow: hidden; }
+.stack-rig { --gap: clamp(58px, 6.6vw, 92px); position: relative; width: clamp(140px, 15vw, 210px); aspect-ratio: 1; transform-style: preserve-3d; transform: rotateX(6deg) rotateY(58deg); }
+.stack-slice { position: absolute; inset: 0; border-radius: 3px; background: #1d2023; outline: 0 solid transparent; outline-offset: 5px; transform: translateZ(calc(var(--z) * var(--gap))); }
+.stack-slice img { display: block; width: 100%; height: 100%; border-radius: 3px; }
+.stack-slice.is-near { outline: 2px solid rgb(255 255 255 / .9); }
+.stack-slice.is-far { outline: 1.5px dashed rgb(255 255 255 / .55); }
+.stack-label { color: #e9e7e2; font-size: .8125rem; font-weight: 500; letter-spacing: .01em; }
+.slice-stack figcaption p { font-size: 1rem; line-height: 1.6; color: var(--muted); }
+.slice-stack figcaption p + p { margin-top: 16px; }
+.slice-stack figcaption strong { color: var(--ink); font-weight: 600; }
+.slice-stack.is-playing .stack-slice { animation: stack-fan 1.1s var(--spring-gentle) backwards; }
+.slice-stack.is-playing .is-near { animation: stack-fan 1.1s var(--spring-gentle) 90ms backwards, stack-outline .5s ease 1.75s backwards; }
+.slice-stack.is-playing .is-far { animation: stack-fan 1.1s var(--spring-gentle) 180ms backwards, stack-outline .5s ease 2.2s backwards; }
+.slice-stack.is-playing .is-target img { animation: stack-resolve .9s ease 1s backwards; }
+.slice-stack.is-playing .stack-label { animation: stack-label .5s ease 1.4s backwards; }
+@keyframes stack-fan { from { transform: translateZ(0); } }
+@keyframes stack-outline { from { outline-color: transparent; } }
+@keyframes stack-resolve { from { opacity: 0; filter: blur(10px); } }
+@keyframes stack-label { from { opacity: 0; transform: translateY(6px); } }
+
+/* MRI results: each model's PSNR spread (mean ± one standard deviation) on a shared 23–31 dB scale. */
+.results-table th.psnr-head, .results-table td.psnr-cell { text-align: left; }
+.range-axis, .psnr-range { display: inline-block; width: 190px; margin-right: 18px; vertical-align: middle; }
+.range-axis { display: inline-flex; justify-content: space-between; color: var(--muted); }
+.psnr-range { position: relative; height: 20px; background: linear-gradient(var(--line), var(--line)) 0 50% / 100% 1px no-repeat; }
+.psnr-range i { position: absolute; top: 6px; bottom: 6px; left: var(--lo); right: calc(100% - var(--hi)); border-radius: 4px; background: #bdb9b1; }
+.psnr-range i::after { content: ''; position: absolute; left: 50%; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.psnr-range.is-lead i { background: var(--ink); }
+.results-table-wrap.is-playing .psnr-range i { animation: range-grow .95s var(--spring-gentle) backwards; }
+.results-table-wrap.is-playing tr:nth-child(2) .psnr-range i { animation-delay: 120ms; }
+.results-table-wrap.is-playing tr:nth-child(3) .psnr-range i { animation-delay: 240ms; }
+@keyframes range-grow { from { transform: scaleX(0); } }
+
+/* SoundVector question: two average top 10s as tiles. Solid tiles are songs by the seed's own artist,
+   filled to the fraction the average gives; outlined tiles are other artists. */
+.artist-tiles { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line); }
+.tile-row { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr) 2.25rem; gap: 16px; align-items: center; }
+.tile-row + .tile-row { --row: 650ms; margin-top: 14px; }
+.tile-row > span { font-size: .875rem; color: var(--muted); }
+.tile-row > strong { font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.tiles { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; max-width: 420px; }
+.tiles i { position: relative; aspect-ratio: 1; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.tiles i::after { content: ''; position: absolute; inset: 0; background: var(--ink); transform-origin: 50% 100%; transform: scaleY(var(--fill, 1)); }
+.tiles i.is-other { border-color: #c4c0b8; }
+.tiles i.is-other::after { content: none; }
+.artist-tiles figcaption { margin-top: 18px; font-size: .875rem; line-height: 1.55; color: var(--muted); }
+.artist-tiles.is-playing .tiles i { animation: tile-pop .55s var(--spring) calc(var(--k) * 45ms + var(--row, 0ms)) backwards; }
+.artist-tiles.is-playing .tiles i::after { animation: tile-fill .5s var(--spring-gentle) calc(var(--k) * 45ms + var(--row, 0ms) + 200ms) backwards; }
+@keyframes tile-pop { from { opacity: 0; transform: scale(.35); } }
+@keyframes tile-fill { from { transform: scaleY(0); } }
+
+@media screen {
+ .slice-stack.play-armed .stack-slice { transform: translateZ(0); }
+ .slice-stack.play-armed :is(.is-near, .is-far) { outline-color: transparent; }
+ .slice-stack.play-armed :is(.is-target img, .stack-label) { opacity: 0; }
+ .results-table-wrap.play-armed .psnr-range i { transform: scaleX(0); }
+ .artist-tiles.play-armed .tiles i { opacity: 0; transform: scale(.35); }
+ .artist-tiles.play-armed .tiles i::after { transform: scaleY(0); }
+}
+@media (max-width: 900px) {
+ .slice-stack { grid-template-columns: 1fr; gap: 32px; }
+}
+@media (max-width: 560px) {
+ .stack-scene { height: 300px; gap: 26px; border-radius: 10px; }
+ .stack-rig { --gap: 50px; width: 128px; }
+ .range-axis, .psnr-range { width: 140px; margin-right: 14px; }
+ .tile-row { grid-template-columns: 1fr 2.25rem; gap: 8px 12px; }
+ .tile-row > span { grid-column: 1 / -1; }
+ .tiles { gap: 5px; }
+}
+@media print { .stack-scene { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

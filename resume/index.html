@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#faf9f6"><link rel="icon" href="data:,"><title>Resume | Roop Yaswanth</title><meta name="description" content="Download Roop Yaswanth’s research engineering resume: machine learning systems, retrieval and deployment."><meta property="og:type" content="website"><meta property="og:title" content="Resume | Roop Yaswanth"><meta property="og:description" content="Download Roop Yaswanth’s research engineering resume: machine learning systems, retrieval and deployment."><link rel="canonical" href="https://roop-yaswanth.github.io/resume/"><meta property="og:url" content="https://roop-yaswanth.github.io/resume/"><meta property="og:image" content="https://roop-yaswanth.github.io/assets/social-card.jpg?v=f9ed64db02"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Roop Yaswanth Nagabhairava, research engineer at the University of Florida, with an illustrated portrait."><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/styles.css?v=46c344ee8e2e"><script>try{if(localStorage.getItem("roop.reduceMotion")==="true")document.documentElement.dataset.reduceMotion="true"}catch(e){}</script><script>(() => {
+const root = document.documentElement;
+const titles = {'/work/cinematch/': '#cinema-title', '/work/soundvector/': '#sound-title', '/work/mri/': '#mri-title'};
+const every = Object.values(titles).concat('#case-title').join();
+const inputs = ['pointerdown', 'wheel', 'touchstart', 'keydown'];
+const reduced = () => root.dataset.reduceMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const path = url => new URL(url, location.href).pathname.replace(/index\.html$/, '');
+const pick = url => {
+if (!url) return null;
+const here = path(location.href), there = path(url);
+const selector = here === '/' ? titles[there] : there === '/' && titles[here] ? '#case-title' : '';
+return selector ? document.querySelector(selector) : null;
+};
+const reset = () => document.querySelectorAll(every).forEach(el => { el.style.viewTransitionName = el.style.translate = ''; });
+const name = el => { el.classList.remove('focus-armed'); el.style.viewTransitionName = 'project-title'; };
+const depart = el => {
+const box = el.getBoundingClientRect();
+const shift = box.bottom < 0 ? -box.bottom : box.top > innerHeight ? innerHeight - box.top : 0;
+if (shift) el.style.translate = `0 ${shift}px`;
+name(el);
+};
+addEventListener('pageswap', event => {
+const transition = event.viewTransition;
+if (!transition) return;
+if (reduced()) return transition.skipTransition();
+const title = pick(event.activation?.entry?.url);
+if (title) depart(title);
+});
+addEventListener('pagereveal', event => {
+reset();
+const transition = event.viewTransition;
+if (!transition) return;
+if (reduced()) return transition.skipTransition();
+const title = pick(window.navigation?.activation?.from?.url);
+if (title) name(title);
+const stop = () => transition.skipTransition();
+const done = () => { inputs.forEach(type => removeEventListener(type, stop, true)); reset(); };
+inputs.forEach(type => addEventListener(type, stop, {capture: true, passive: true}));
+transition.finished.then(done, done);
+});
+})();</script><script src="/assets/app.js?v=2e12b82d656b" defer></script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "Person", "name": "Roop Yaswanth Nagabhairava", "jobTitle": "Research Engineer", "sameAs": ["https://github.com/Geek-yash666", "https://github.com/roop-yaswanth", "https://www.linkedin.com/in/roop-yaswanth-nagabhairava-875b52201/", "https://www.credly.com/users/nagabhairava-roop-yaswanth.86a6b0ae"], "url": "https://roop-yaswanth.github.io"}</script></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><div class="nav-wrap"><a class="brand" href="/">Roop Yaswanth</a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" hidden>Menu</button><nav id="primary-nav" aria-label="Main navigation"><a href="/#work">Work</a><a href="/#research">Research</a><a href="/#resume">Resume</a><a href="/#contact">Contact</a></nav></div></header><main id="main" tabindex="-1" class="resume-page container">
+<div class="resume-hero">
+  <h1>Resume</h1>
+  <p class="resume-intro"><strong>Roop Yaswanth Nagabhairava</strong> <span>Research Engineer, Gainesville, Florida</span></p>
+</div>
+<section class="resume-section resume-choose" aria-labelledby="download-title">
+  <h2 id="download-title">Download my resume</h2>
+  <p class="resume-lede">Research engineering, from experiments to working machine learning systems.</p>
+  <div class="resume-downloads resume-downloads-primary">
+    <a href="/assets/Roop_Nagabhairava_ResearchEngineer.pdf" class="resume-download"><span class="download-copy"><strong>Download my resume</strong><span>Research engineering · Machine learning systems</span></span><span class="pdf-label">PDF<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></span></a>
+  </div>
+</section>
+<p class="resume-elsewhere">Experience, education, certifications and skills are on the <a href="/#resume">home page</a>, beside the projects.</p>
+<section class="resume-section" aria-labelledby="contact-title">
+  <h2 id="contact-title">Contact</h2>
+  <p class="resume-contact"><a href="mailto:yaswanthnagabhairava@gmail.com">yaswanthnagabhairava@gmail.com</a><span aria-hidden="true">·</span><a href="https://www.linkedin.com/in/roop-yaswanth-nagabhairava-875b52201/">LinkedIn</a><span aria-hidden="true">·</span><span class="contact-github">GitHub <a href="https://github.com/Geek-yash666">Geek-yash666</a>, <a href="https://github.com/roop-yaswanth">roop-yaswanth</a></span></p>
+</section>
+</main>
+<footer class="site-footer section-width"><span>© 2026 Roop Yaswanth Nagabhairava</span><button class="motion-toggle" type="button" aria-pressed="false" hidden>Reduce motion</button></footer></body></html>
