@@ -83,11 +83,10 @@
     return {x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, s: Math.hypot(b[0] - a[0], b[1] - a[1]) / (SIZE * .59)};
   };
   // Beside the thing she's pondering: in the margin past its column when there's room, else just above it.
-  // Something still coming up from below the fold gets her waiting for it at the bottom of the screen.
   const beside = el => {
     const r = el.getBoundingClientRect(), col = (el.closest('.section-width, .container') || el).getBoundingClientRect();
     const w = W * OUT, h = H * OUT, t = top(), low = innerHeight - h - 50;
-    if (!reach(el) || r.bottom < t + 30) return null;
+    if (r.bottom < t + 30 || r.top > innerHeight - 30) return null;
     const y = Math.min(Math.max(r.top + h, t + h + 18), low);
     if (col.right + 24 + w <= innerWidth - 12) return {x: col.right + 24 + w / 2, y, s: OUT};
     if (col.left - 24 - w >= 12) return {x: col.left - 24 - w / 2, y, s: OUT};
@@ -314,29 +313,30 @@
     return true;
   };
 
-  // The pools name their moments: seen (when it arrives), hover, click, open (a disclosure), play and pause.
-  // Pools with no moment are played below by name. She sees things coming: scrolling down, a section counts
-  // from where the scroll will bring it in 0.4 seconds (at most a sixth of a screen below the fold), so her line
-  // lands as it comes up.
-  const LEAD = .16;
+  // The pools name their moments: seen (when it reaches the middle of the screen), hover, click, open (a
+  // disclosure), play and pause. Pools with no moment are played below by name.
   const hooks = {hover: [], click: [], open: [], play: [], pause: []}, pending = new Map(), done = new Set(), seenAt = {}, watched = [];
   const seen = new IntersectionObserver(entries => entries.forEach(entry => {
     const key = entry.target.dataset.poppySeen;
     if (!entry.isIntersecting) pending.delete(key);
     else if (!done.has(key)) pending.set(key, entry.target);
     else if (now() - seenAt[key] > 90000) once('revisit', 20000, 'revisit', entry.target, 1, 'beside');
-  }) || trySeen(), {rootMargin: `0px 0px ${LEAD * 100}% 0px`});
+  }) || trySeen(), {rootMargin: '-35% 0px -35% 0px'});
   const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > top() && r.top < innerHeight; };
-  const reach = el => { const r = el.getBoundingClientRect(); return r.bottom > top() && r.top < innerHeight * (1 + LEAD); };
-  // The newest arrival speaks first; the others keep while they're in reach.
+  // Seen means its top has come up to the middle of the view below the header, or it's anywhere on screen
+  // once the page is at its bottom (the last screen never gets that far). Nothing counts mid-flick. Something
+  // scrolled past before its turn is dropped, and said if it comes back.
+  const bottom = () => innerHeight + scrollY >= root.scrollHeight - 40;
+  const central = el => { const r = el.getBoundingClientRect(); return r.top < (top() + innerHeight) / 2 + 24 && r.bottom > innerHeight * .3 || bottom() && onScreen(el); };
+  // The newest arrival speaks first; the others keep while they're still in the middle band.
   const trySeen = () => {
+    if (now() - lastScroll < 150 && Math.abs(scrollV) > 1800) return later(200);
     for (const [key, el] of [...pending].reverse()) {
-      if (!reach(el)) { pending.delete(key); continue; }
-      if (!onScreen(el) && (now() - lastDown > 150 || el.getBoundingClientRect().top > innerHeight + lead)) continue;
-      if (!able(key)) return;
+      if (!onScreen(el)) { pending.delete(key); continue; }
+      if (!central(el) || !able(key)) continue;
       const ms = wait(1);
       if (ms > 0) return ms < Infinity && later(ms);
-      clearTimeout(hideTimer); speak(key, el, 1, 'beside', () => reach(el));
+      clearTimeout(hideTimer); speak(key, el, 1, 'beside', () => onScreen(el));
       done.add(key); seenAt[key] = now(); pending.delete(key);
       return;
     }
@@ -429,7 +429,7 @@
 
   // Always on: input wakes her, speed makes her dizzy, quiet makes her doze, and a visitor who is still
   // reading hears her ponder.
-  let lastInput = now(), lastScroll = 0, lastDown = -1e9, lead = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
+  let lastInput = now(), lastScroll = 0, scrollV = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
   const wake = () => {
     lastInput = now(); idleSaid = false;
     if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); say('wake', null, 3); aimSoon(); }
@@ -450,8 +450,7 @@
   addEventListener('scroll', () => {
     wake();
     const t = now(), v = (scrollY - lastY) / Math.max(1, t - lastT) * 1000;
-    lastY = scrollY; lastT = t; lastScroll = t;
-    if (v > 0) { lastDown = t; lead = Math.min(v * .4, innerHeight * LEAD); }
+    lastY = scrollY; lastT = t; lastScroll = t; scrollV = v;
     if (pending.size) trySeen();
     if (mode === 'home' && showing()) placeBubble();
     if (mode === 'off' || mode === 'home') return;
@@ -459,7 +458,7 @@
     fast = Math.abs(v) > 3200 ? fast + 1 : 0;
     if (fast > 2 && once('fling', 6000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) dizzy();
     if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000) once('reading', 90000, 'reading', null, 0); } else readSince = 0;
-    if (innerHeight + scrollY >= root.scrollHeight - 40) { sweep(); trySeen(); once('bottom', 60000, 'bottom', null, 1); }
+    if (bottom()) { sweep(); trySeen(); once('bottom', 60000, 'bottom', null, 1); }
     if (scrollY < 40 && deep && page !== 'home') once('top', 20000, 'top');
     if (scrollY > 1500) deep = true;
   }, {passive: true});
@@ -520,7 +519,7 @@
   const thought = {};
   const ponder = () => {
     if (wait(0) > 0) return;
-    const mid = innerHeight * .4, gap = r => r.top > mid ? r.top - mid : r.bottom < mid ? mid - r.bottom : 0;
+    const mid = innerHeight / 2, gap = r => r.top > mid ? r.top - mid : r.bottom < mid ? mid - r.bottom : 0;
     let best = null, score = innerHeight * .3;
     for (const el of watched) {
       if (!done.has(el.dataset.poppySeen)) continue;
