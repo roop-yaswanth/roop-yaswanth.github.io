@@ -1,7 +1,7 @@
 // Poppy, on every page: the googly eyes as a character (after Poppy Li of Mythic Quest, with some of Kalki's
-// Bujji). On the home page she lives in the name's o's and talks from there, hops out to whatever the visitor
-// points at, and lifts out when the name scrolls away to perch beside the header's name, flying home when it
-// returns; elsewhere she starts on the perch. She watches, blinks, pulls faces and ponders the page in a speech
+// Bujji). On the home page she lives in the name's o's and talks from there, and lifts out when the name
+// scrolls away to perch beside the header's name, flying home when it returns; elsewhere she starts on the
+// perch. A Tag along switch beside the header's name lets her follow the visitor down the page. She watches, blinks, pulls faces and ponders the page in a speech
 // bubble, from lines in src/poppy/*.txt (assets/poppy-*.json). Lines are visual only; reduced motion keeps her
 // home and quiet. DESIGN_SYSTEM.md (Components, Poppy) has the details.
 (() => {
@@ -62,6 +62,16 @@
 .poppy-say.is-above::after{top:100%;border-top-color:#171717}
 .eye-letter::before,.eye-pupil{transition:opacity .15s}
 .is-poppy-out .eye-letter::before,.is-poppy-out .eye-pupil{opacity:0}
+.poppy-follow{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin:0 auto 0 -14px;padding:0;background:none;border:0;font-size:13px;color:var(--muted);white-space:nowrap}
+.poppy-follow:hover,.poppy-follow[aria-pressed="true"]{color:var(--ink)}
+.poppy-switch{position:relative;display:block;width:30px;height:17px;border:1px solid currentColor;border-radius:9px;transition:background .25s,border-color .25s}
+.poppy-switch .googly{position:absolute;left:1px;top:1px;font-size:23px;color:var(--ink);transition:translate .4s var(--spring)}
+.poppy-switch .googly i{--gx:-2px;--gy:1px}
+.poppy-follow[aria-pressed="true"] .poppy-switch{background:var(--ink);border-color:var(--ink)}
+.poppy-follow[aria-pressed="true"] .poppy-switch .googly{translate:13px 0}
+.poppy-follow[aria-pressed="true"] .poppy-switch .googly i{--gx:2px;--gy:-1px}
+@media(max-width:560px){.poppy-follow{margin-left:14px}}
+@media(min-width:561px) and (max-width:640px){.poppy-follow-label{display:none}}
 @media print{.poppy,.poppy-say{display:none}.is-poppy-out .eye-letter::before,.is-poppy-out .eye-pupil{opacity:1}}`;
   document.head.append(style);
   const poppy = document.createElement('div'), bubble = document.createElement('p');
@@ -70,13 +80,27 @@
   poppy.innerHTML = '<span class="googly-pair"><span class="googly"><i></i></span><span class="googly"><i></i></span></span>';
   document.body.append(poppy, bubble);
   const pupils = [...poppy.querySelectorAll('i')];
+  // Tag along. Off (the default) she keeps to the name or her perch just past this switch and comments from
+  // there; on, she goes out beside whatever she's talking about. The choice is kept for next time.
+  let follow = false;
+  try { follow = localStorage.getItem('poppy.follow') === '1'; } catch (_) {}
+  const toggle = document.createElement('button');
+  toggle.type = 'button'; toggle.className = 'poppy-follow'; toggle.hidden = true; toggle.setAttribute('aria-pressed', follow);
+  toggle.innerHTML = '<span class="poppy-switch" aria-hidden="true"><span class="googly"><i></i></span></span><span class="poppy-follow-label">Tag along</span>';
+  brand.after(toggle);
+  toggle.addEventListener('click', () => {
+    follow = !follow; toggle.setAttribute('aria-pressed', follow);
+    try { localStorage.setItem('poppy.follow', follow ? '1' : '0'); } catch (_) {}
+    if (!follow && mode === 'sortie') fly(atHome ? 'homing' : 'perch');
+    say(follow ? 'follow-on' : 'follow-off', null, 3);
+  });
 
   // Where she is, where she's going. mode: off, home (docked in the name), homing, perch or sortie: out beside
   // a section she's pondering, staying while it's in view, or close above something the visitor points at,
   // for one line.
   let mode = 'off', x = 0, y = 0, s = 1, vx = 0, vy = 0, vs = 0, frame = 0, last = 0, focus = null, close = false, atHome = false;
   const top = () => header.getBoundingClientRect().bottom;
-  const perch = () => { const b = brand.getBoundingClientRect(); return {x: b.right + 14 + W / 2, y: b.top + b.height / 2, s: 1}; };
+  const perch = () => { const b = (toggle.offsetParent ? toggle : brand).getBoundingClientRect(); return {x: b.right + 14 + W / 2, y: b.top + b.height / 2, s: 1}; };
   const home = () => {
     const st = getComputedStyle(name), cx = parseFloat(st.getPropertyValue('--eye-cx')) || .2775, cy = parseFloat(st.getPropertyValue('--eye-cy')) || .625;
     const [a, b] = letters.map(l => { const r = l.getBoundingClientRect(), f = parseFloat(getComputedStyle(l).fontSize); return [r.left + cx * f, r.top + cy * f]; });
@@ -250,10 +274,10 @@
     if (mode === 'sortie' && close) setTimeout(() => { if (mode === 'sortie' && close && !showing()) fly(atHome ? 'homing' : 'perch'); }, 350);
     flush();
   };
-  // Out to something: close above it for a line (hopping out of the name if need be), or beside it in the
-  // margin while it's in view.
+  // Tagging along, out to something: close above it for a line (hopping out of the name if need be), or beside
+  // it in the margin while it's in view.
   const go = (el, closeBy) => {
-    if (mode === 'home' && !closeBy || !(closeBy ? near(el) : beside(el))) return;
+    if (!follow || mode === 'home' && !closeBy || !(closeBy ? near(el) : beside(el))) return;
     focus = el; close = closeBy;
     if (mode === 'home') leave();
     fly('sortie');
@@ -427,9 +451,9 @@
     say(`taste-${taste}`, document.querySelector('.similar-results'));
   });
 
-  // Always on: input wakes her, speed makes her dizzy, quiet makes her doze, and a visitor who is still
+  // Always on: input wakes her, a quick scroll gets a compliment and a fling makes her dizzy, quiet makes her doze, and a visitor who is still
   // reading hears her ponder.
-  let lastInput = now(), lastScroll = 0, scrollV = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
+  let lastInput = now(), lastScroll = 0, scrollV = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, quick = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
   const wake = () => {
     lastInput = now(); idleSaid = false;
     if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); say('wake', null, 3); aimSoon(); }
@@ -456,7 +480,9 @@
     if (mode === 'off' || mode === 'home') return;
     aimSoon();
     fast = Math.abs(v) > 3200 ? fast + 1 : 0;
-    if (fast > 2 && once('fling', 6000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) dizzy();
+    quick = Math.abs(v) > 1500 ? quick + 1 : 0;
+    if (fast > 2 && once('fling', 6000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) { dizzy(); cooled.quick = now(); }
+    else if (quick > 3 && !fast) once('quick', 7000, v > 0 ? 'scroll-quick' : 'scroll-quick-up');
     if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000) once('reading', 90000, 'reading', null, 0); } else readSince = 0;
     if (bottom()) { sweep(); trySeen(); once('bottom', 60000, 'bottom', null, 1); }
     if (scrollY < 40 && deep && page !== 'home') once('top', 20000, 'top');
@@ -558,6 +584,7 @@
   let watching = false;
   const start = () => {
     if (reduced()) return;
+    toggle.hidden = false;
     if (hasHome) {
       mode = 'home';
       if (watching) { if (!atHome) launch(); return; }
@@ -575,7 +602,7 @@
     cancelAnimationFrame(frame); frame = 0; hush(); dozing = false;
     poppy.classList.remove('is-out', 'is-dozing', 'is-flying', 'is-visiting');
     if (name) name.classList.remove('is-poppy-out');
-    mode = 'off';
+    mode = 'off'; toggle.hidden = true;
   });
   start();
 })();
