@@ -1,8 +1,9 @@
 // Poppy, on every page: the googly eyes as a character (after Poppy Li of Mythic Quest, with some of Kalki's
-// Bujji). On the home page she lifts out of the name's o's when it scrolls away and perches beside the header's
-// name, flying home when it returns; elsewhere she starts on the perch. She watches, blinks, pulls faces and
-// ponders the page in a speech bubble, from lines in src/poppy/*.txt (assets/poppy-*.json). Lines are visual
-// only; reduced motion keeps her home and quiet. DESIGN_SYSTEM.md (Components, Poppy) has the details.
+// Bujji). On the home page she lives in the name's o's and talks from there, hops out to whatever the visitor
+// points at, and lifts out when the name scrolls away to perch beside the header's name, flying home when it
+// returns; elsewhere she starts on the perch. She watches, blinks, pulls faces and ponders the page in a speech
+// bubble, from lines in src/poppy/*.txt (assets/poppy-*.json). Lines are visual only; reduced motion keeps her
+// home and quiet. DESIGN_SYSTEM.md (Components, Poppy) has the details.
 (() => {
   const script = document.currentScript, root = document.documentElement, page = script.dataset.page;
   const brand = document.querySelector('.brand'), header = document.querySelector('.site-header');
@@ -17,6 +18,7 @@
   const style = document.createElement('style');
   style.textContent = `.poppy{position:fixed;left:0;top:0;z-index:45;font-size:${SIZE}px;line-height:1;color:#171717;cursor:pointer;opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s .25s}
 .poppy.is-out{opacity:1;visibility:visible;transition:opacity .15s}
+.poppy.is-visiting{pointer-events:none}
 .poppy .googly-pair{display:flex;animation:poppy-bob 3.4s ease-in-out infinite}
 .poppy .googly i{width:.2em;height:.2em}
 .poppy.is-flying .googly-pair{animation:none}
@@ -69,8 +71,10 @@
   document.body.append(poppy, bubble);
   const pupils = [...poppy.querySelectorAll('i')];
 
-  // Where she is, where she's going. mode: off, home (docked in the name), homing, perch or sortie.
-  let mode = 'off', x = 0, y = 0, s = 1, vx = 0, vy = 0, vs = 0, frame = 0, last = 0, focus = null, atHome = false;
+  // Where she is, where she's going. mode: off, home (docked in the name), homing, perch or sortie: out beside
+  // a section she's pondering, staying while it's in view, or close above something the visitor points at,
+  // for one line.
+  let mode = 'off', x = 0, y = 0, s = 1, vx = 0, vy = 0, vs = 0, frame = 0, last = 0, focus = null, close = false, atHome = false;
   const top = () => header.getBoundingClientRect().bottom;
   const perch = () => { const b = brand.getBoundingClientRect(); return {x: b.right + 14 + W / 2, y: b.top + b.height / 2, s: 1}; };
   const home = () => {
@@ -79,21 +83,31 @@
     return {x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, s: Math.hypot(b[0] - a[0], b[1] - a[1]) / (SIZE * .59)};
   };
   // Beside the thing she's pondering: in the margin past its column when there's room, else just above it.
+  // Something still coming up from below the fold gets her waiting for it at the bottom of the screen.
   const beside = el => {
     const r = el.getBoundingClientRect(), col = (el.closest('.section-width, .container') || el).getBoundingClientRect();
-    const w = W * OUT, h = H * OUT, t = top();
-    if (r.bottom < t + 30 || r.top > innerHeight - 30) return null;
-    const y = Math.min(Math.max(r.top + h, t + h + 18), innerHeight - h - 50);
+    const w = W * OUT, h = H * OUT, t = top(), low = innerHeight - h - 50;
+    if (!reach(el) || r.bottom < t + 30) return null;
+    const y = Math.min(Math.max(r.top + h, t + h + 18), low);
     if (col.right + 24 + w <= innerWidth - 12) return {x: col.right + 24 + w / 2, y, s: OUT};
     if (col.left - 24 - w >= 12) return {x: col.left - 24 - w / 2, y, s: OUT};
-    return {x: innerWidth - w / 2 - 14, y: Math.max(r.top - h / 2 - 10, t + h / 2 + 12), s: OUT};
+    return {x: innerWidth - w / 2 - 14, y: Math.min(Math.max(r.top - h / 2 - 10, t + h / 2 + 12), low), s: OUT};
   };
-  const spot = () => mode === 'homing' ? home() : mode === 'sortie' ? beside(focus) || perch() : perch();
+  // Close above the thing the visitor points at, by its right end, kept clear of the header.
+  const near = el => {
+    const r = el.getBoundingClientRect(), t = top();
+    if (r.bottom < t + 10 || r.top > innerHeight - 10) return null;
+    return {x: Math.min(Math.max(r.right - W / 2 - 6, W / 2 + 12), innerWidth - W / 2 - 12), y: Math.min(Math.max(r.top - H / 2 - 8, t + H / 2 + 8), innerHeight - H / 2 - 12), s: 1};
+  };
+  const spot = () => {
+    if (mode === 'sortie') { const at = focus?.isConnected && (close ? near(focus) : beside(focus)); if (at) return at; mode = atHome ? 'homing' : 'perch'; }
+    return mode === 'homing' ? home() : perch();
+  };
 
   const place = () => {
     const tilt = Math.max(-16, Math.min(16, vx * .025));
     poppy.style.transform = `translate(${x - W / 2}px,${y - H / 2}px) scale(${s}) rotate(${tilt}deg)`;
-    if (bubble.classList.contains('is-showing')) placeBubble();
+    if (showing()) placeBubble();
   };
   // A spring toward the spot, slightly underdamped so she overshoots and settles like the rest of the site.
   const tick = t => {
@@ -104,32 +118,34 @@
     place(); aim();
     const still = Math.abs(to.x - x) + Math.abs(to.y - y) < .6 && Math.abs(vx) + Math.abs(vy) < 6 && Math.abs(to.s - s) < .004;
     poppy.classList.toggle('is-flying', !still);
+    poppy.classList.toggle('is-visiting', mode === 'sortie' && close);
     // Home, she finishes her sentence before settling into the name.
-    if (still && mode === 'homing' && !bubble.classList.contains('is-showing')) return dock();
+    if (still && mode === 'homing' && !showing()) return dock();
     frame = still && mode === 'perch' ? 0 : requestAnimationFrame(tick);
   };
   const run = () => { if (!frame && mode !== 'off' && mode !== 'home') { last = now(); frame = requestAnimationFrame(tick); } };
   const fly = to => { mode = to; run(); };
   const show = () => { poppy.classList.add('is-out'); place(); aim(); };
   const dock = () => {
-    cancelAnimationFrame(frame); frame = 0; mode = 'home';
-    poppy.classList.remove('is-out', 'is-flying', 'is-dozing'); hush();
+    cancelAnimationFrame(frame); frame = 0; mode = 'home'; dozing = false;
+    poppy.classList.remove('is-out', 'is-flying', 'is-dozing', 'is-visiting'); hush();
     name.classList.remove('is-poppy-out');
   };
+  const leave = () => { ({x, y, s} = home()); vx = vy = vs = 0; name.classList.add('is-poppy-out'); show(); };
   const launch = () => {
     if (mode !== 'home' && mode !== 'homing') return;
     // From the o's when they're on screen; arriving on a page already scrolled past them, she drops onto the perch.
     if (mode === 'home') {
-      const from = home(), p = perch();
-      ({x, y, s} = from.y > -40 ? from : {x: p.x, y: p.y - 36, s: .4});
-      vx = vy = vs = 0; name.classList.add('is-poppy-out'); show();
+      const p = perch();
+      leave();
+      if (y < -40) { x = p.x; y = p.y - 36; s = .4; }
     }
     fly('perch');
-    hello();
+    if (!greet() && Math.random() < .7) once('launch', 6000, 'launch');
   };
   const goHome = () => {
     if (mode === 'off' || mode === 'home') return;
-    if (Math.random() < .4) once('return', 20000, 'return');
+    if (Math.random() < .7) once('return', 6000, 'return');
     fly('homing');
   };
 
@@ -191,16 +207,24 @@
     : /lonely|[Mm]iss you|I’ll miss|sulk/.test(line) ? 'sad'
     : '';
 
-  // Speech. A line stays up until it has been read. After it ends, answers to the visitor (clicks, keys,
-  // events) may follow at once, hovers after 1.2 seconds and everything else after 4; an answer that comes
-  // mid-line waits its turn. Only direct answers (a poke, a copy, a pick, waking, coming back) interrupt, and
-  // never within 0.7 seconds of the last line. A sortie flies home once the bubble is gone.
-  let pools = {}, faces = {}, used = new Set(), lastSaid = -1e9, busyUntil = 0, next = null, lastSortie = -1e9, hideTimer = 0;
+  // Speech. She answers what the visitor does as it happens. A line holds the bubble until it has been read
+  // (half a second plus 40 ms a character, at most 2.2 seconds), then the next thing may take it; something
+  // more pressing waits at most 0.7 seconds, the next section while the page is still scrolling 0.9, a poke or
+  // a copy 0.3, and a line whose subject has gone (the pointer moved on, the section scrolled away) only 0.4. A line that has to wait queues and is dropped if
+  // it's stale by then. Docked in the name she speaks from the o's; with nothing happening she ponders what's
+  // in view, two and a half seconds after her last line ends.
+  const CHAT = 2500;
+  let pools = {}, faces = {}, used = new Set(), lastSaid = -1e9, lastEnd = -1e9, cur = null, queued = null, hideTimer = 0, flushTimer = 0, flushAt = 0;
   try { used = new Set(JSON.parse(sessionStorage.getItem('poppy.used') || '[]')); } catch (_) {}
-  const PAUSE = [4000, 0, 1200];
-  const able = key => pools[key]?.length && mode !== 'off' && mode !== 'home' && mode !== 'homing' && !reduced() && !document.hidden && !root.classList.contains('trailer-open');
-  const free = urgency => urgency === 3 ? now() - lastSaid >= 700 : now() >= busyUntil + PAUSE[urgency];
-  const can = (key, urgency = 0) => able(key) && free(urgency);
+  const showing = () => bubble.classList.contains('is-showing');
+  const able = key => pools[key]?.length && mode !== 'off' && !reduced() && !document.hidden && !root.classList.contains('trailer-open') && !(mode === 'home' && document.querySelector('.eye-quip.is-showing'));
+  // Priority: 0 a thought of her own, 1 something coming into view, 2 something the visitor did, 3 a direct answer.
+  const wait = pri => {
+    if (!showing()) return pri ? 0 : lastEnd + CHAT - now();
+    if (!pri) return Infinity;
+    const skim = pri === 1 && cur.pri === 1 && now() - lastScroll < 400;
+    return (pri > 2 ? 300 : !cur.ok() ? 400 : pri > cur.pri || skim ? Math.min(cur.hold, pri > cur.pri ? 700 : 900) : cur.hold) - (now() - cur.at);
+  };
   const pick = key => {
     const list = pools[key], fresh = list.filter(l => !used.has(l));
     if (!fresh.length) list.forEach(l => used.delete(l));
@@ -209,108 +233,183 @@
     try { sessionStorage.setItem('poppy.used', JSON.stringify([...used].slice(-900))); } catch (_) {}
     return line;
   };
+  // Docked, the bubble clears the letters' cap height, where the name's own quips appear.
   const placeBubble = () => {
-    const bw = bubble.offsetWidth, bh = bubble.offsetHeight, half = H * s / 2;
-    const below = mode === 'perch' || y - half - bh - 14 < top();
-    const left = Math.min(Math.max(x - bw / 2, 10), innerWidth - bw - 10);
+    const at = mode === 'home' ? home() : {x, y, s};
+    const bw = bubble.offsetWidth, bh = bubble.offsetHeight, half = mode === 'home' ? parseFloat(getComputedStyle(letters[0]).fontSize) * .45 : H * at.s / 2;
+    const below = mode === 'perch' || at.y - half - bh - 14 < top() - (mode === 'home' ? 8 : 0);
+    const left = Math.min(Math.max(at.x - bw / 2, 10), innerWidth - bw - 10);
     bubble.classList.toggle('is-below', below); bubble.classList.toggle('is-above', !below);
-    bubble.style.setProperty('--tail', `${Math.min(Math.max(x - left, 16), bw - 16)}px`);
-    bubble.style.translate = `${left}px ${below ? y + half + 10 : y - half - 10 - bh}px`;
+    bubble.style.setProperty('--tail', `${Math.min(Math.max(at.x - left, 16), bw - 16)}px`);
+    bubble.style.translate = `${left}px ${below ? at.y + half + 10 : at.y - half - 10 - bh}px`;
   };
   const hush = () => {
-    bubble.classList.remove('is-showing');
-    busyUntil = Math.min(busyUntil, now());
-    if (mode === 'sortie') setTimeout(() => { if (mode === 'sortie' && !bubble.classList.contains('is-showing')) fly('perch'); }, 500);
-    setTimeout(() => { const n = next; next = null; if (n && now() - n.at < 6000) fire(n.key, n.el, 1, n.out); }, 250);
+    clearTimeout(hideTimer);
+    if (showing()) lastEnd = now();
+    bubble.classList.remove('is-showing'); cur = null;
+    // A close look ends with its line: back to the name or the perch.
+    if (mode === 'sortie' && close) setTimeout(() => { if (mode === 'sortie' && close && !showing()) fly(atHome ? 'homing' : 'perch'); }, 350);
+    flush();
   };
-  // Say a line from a pool. With an element she looks at it, reading its figures or bars one by one, and a
-  // click, an opened topic or a section coming into view can send her out beside it, at most every 12 seconds.
-  const fire = (key, el, urgency = 0, out = false) => {
-    if (!able(key)) return false;
-    if (!free(urgency)) { if (urgency === 1) next = {key, el, out, at: now()}; return urgency === 1; }
+  // Out to something: close above it for a line (hopping out of the name if need be), or beside it in the
+  // margin while it's in view.
+  const go = (el, closeBy) => {
+    if (mode === 'home' && !closeBy || !(closeBy ? near(el) : beside(el))) return;
+    focus = el; close = closeBy;
+    if (mode === 'home') leave();
+    fly('sortie');
+  };
+  const speak = (key, el, pri, visit, ok) => {
     let tag = '', line = pick(key).replace(/\s*\{([a-z]+)\}$/, (_, t) => { tag = t; return ''; });
-    const ms = Math.min(5200, 1700 + line.length * 55), again = bubble.classList.contains('is-showing');
-    lastSaid = now(); busyUntil = lastSaid + ms;
+    const ms = Math.min(5200, 1700 + line.length * 55), again = showing();
+    lastSaid = now(); cur = {pri, ok, at: lastSaid, hold: Math.min(2200, 500 + line.length * 40)};
+    if (el && visit) go(el, visit === 'near');
     bubble.textContent = line;
     bubble.classList.remove('is-new');
     if (again) { void bubble.offsetWidth; bubble.classList.add('is-new'); }
     bubble.classList.add('is-showing');
     placeBubble();
-    clearTimeout(hideTimer);
     hideTimer = setTimeout(hush, ms);
     express(tag || faces[key] || guess(line), ms);
+    // She looks at what she's talking about, reading its figures or bars one by one.
     if (el) {
       look(el, 3200);
       const marks = [...el.querySelectorAll('.bar-row strong, .project-highlights dt, .results-table tbody tr')].slice(0, 6);
       if (marks.length > 1) marks.forEach((m, i) => setTimeout(() => look(m, 1000), 350 + i * 450));
-      if (out && mode === 'perch' && now() - lastSortie > 12000 && beside(el)) { focus = el; lastSortie = now(); fly('sortie'); }
     }
+  };
+  // Say a line from a pool now, or queue it; ok() says whether it's still worth saying, and worth finishing.
+  const say = (key, el = null, pri = 2, visit = '', ok = null, at = now()) => {
+    if (!able(key)) return false;
+    ok ||= () => !el || onScreen(el);
+    const ms = wait(pri);
+    if (ms <= 0) { clearTimeout(hideTimer); speak(key, el, pri, visit, ok); return true; }
+    if (ms === Infinity || queued && queued.pri > pri) return false;
+    queued = {key, el, pri, visit, ok, at}; later(ms);
     return true;
+  };
+  const later = ms => {
+    if (flushTimer && flushAt <= now() + ms) return;
+    clearTimeout(flushTimer); flushAt = now() + ms;
+    flushTimer = setTimeout(() => { flushTimer = 0; flush(); }, ms);
+  };
+  const flush = () => {
+    const q = queued; queued = null;
+    if (q && now() - q.at < 5000 && q.ok()) say(q.key, q.el, q.pri, q.visit, q.ok, q.at);
+    if (!queued) trySeen();
   };
   // A cooldown starts only when its line is said or queued, so a busy moment never loses it.
   const cooled = {};
-  const once = (ck, ms, key, el = null, urgency = 1, out = false) => {
-    if (now() - (cooled[ck] || -1e9) < ms || !fire(key, el, urgency, out)) return false;
+  const once = (ck, ms, key, el = null, pri = 2, visit = '') => {
+    if (now() - (cooled[ck] || -1e9) < ms || !say(key, el, pri, visit)) return false;
     cooled[ck] = now(); return true;
   };
-  const hello = () => greet() || (page === 'home' ? once('launch', 20000, 'launch') : Math.random() < .6 && fire('arrive', null, 1));
+  const hello = () => greet() || say('arrive');
   const greet = () => {
     try { if (sessionStorage.getItem('poppy.hello')) return false; } catch (_) { return false; }
     const d = new Date(), h = d.getHours(), weekend = d.getDay() % 6 === 0 && Math.random() < .4;
     const key = weekend ? 'hello-weekend' : h < 5 || h >= 22 ? 'hello-night' : h < 12 ? 'hello-morning' : h < 17 ? 'hello-afternoon' : 'hello-evening';
-    if (!fire(key, null, 1)) return false;
+    if (!say(key)) return false;
     try { sessionStorage.setItem('poppy.hello', '1'); } catch (_) {}
     return true;
   };
 
-  // The pools name their moments: seen (the first time it scrolls into view), hover, click, open (a
-  // disclosure), play and pause. Pools with no moment are played below by name.
-  const hooks = {hover: [], click: [], open: [], play: [], pause: []}, pending = new Map(), done = new Set(), seenAt = {};
+  // The pools name their moments: seen (when it arrives), hover, click, open (a disclosure), play and pause.
+  // Pools with no moment are played below by name. She sees things coming: scrolling down, a section counts
+  // from where the scroll will bring it in 0.4 seconds (at most a sixth of a screen below the fold), so her line
+  // lands as it comes up.
+  const LEAD = .16;
+  const hooks = {hover: [], click: [], open: [], play: [], pause: []}, pending = new Map(), done = new Set(), seenAt = {}, watched = [];
   const seen = new IntersectionObserver(entries => entries.forEach(entry => {
     const key = entry.target.dataset.poppySeen;
     if (!entry.isIntersecting) pending.delete(key);
     else if (!done.has(key)) pending.set(key, entry.target);
-    else if (now() - seenAt[key] > 90000) once('revisit', 60000, 'revisit', entry.target, 0, true);
-  }) || trySeen(), {rootMargin: '0px 0px -40% 0px'});
+    else if (now() - seenAt[key] > 90000) once('revisit', 20000, 'revisit', entry.target, 1, 'beside');
+  }) || trySeen(), {rootMargin: `0px 0px ${LEAD * 100}% 0px`});
   const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > top() && r.top < innerHeight; };
+  const reach = el => { const r = el.getBoundingClientRect(); return r.bottom > top() && r.top < innerHeight * (1 + LEAD); };
+  // The newest arrival speaks first; the others keep while they're in reach.
   const trySeen = () => {
     for (const [key, el] of [...pending].reverse()) {
-      if (!onScreen(el)) { pending.delete(key); continue; }
-      if (fire(key, el, 0, true)) { done.add(key); seenAt[key] = now(); pending.delete(key); }
+      if (!reach(el)) { pending.delete(key); continue; }
+      if (!onScreen(el) && (now() - lastDown > 150 || el.getBoundingClientRect().top > innerHeight + lead)) continue;
+      if (!able(key)) return;
+      const ms = wait(1);
+      if (ms > 0) return ms < Infinity && later(ms);
+      clearTimeout(hideTimer); speak(key, el, 1, 'beside', () => reach(el));
+      done.add(key); seenAt[key] = now(); pending.delete(key);
       return;
     }
   };
   // The last screen of a page never reaches the reading line, so at the bottom whatever is in view counts.
-  const sweep = () => document.querySelectorAll('[data-poppy-seen]').forEach(el => { if (!done.has(el.dataset.poppySeen) && onScreen(el)) pending.set(el.dataset.poppySeen, el); });
+  const sweep = () => watched.forEach(el => { if (!done.has(el.dataset.poppySeen) && onScreen(el)) pending.set(el.dataset.poppySeen, el); });
   const wire = list => list.forEach(([key, on, sel, lines, look]) => {
     pools[key] = (pools[key] || []).concat(lines);
     if (look && !faces[key]) faces[key] = look;
     if (on === 'seen') {
       let el = null;
       try { el = document.querySelector(sel); } catch (_) {}
-      if (el && !el.dataset.poppySeen) { el.dataset.poppySeen = key; seen.observe(el); }
+      if (el && !el.dataset.poppySeen) { el.dataset.poppySeen = key; watched.push(el); seen.observe(el); }
     } else if (on) hooks[on].push([key, sel]);
   });
-  const match = (on, target, each) => hooks[on].forEach(([key, sel]) => {
-    let el = null;
-    try { el = target.closest?.(sel) || null; } catch (_) {}
-    if (el) each(key, el);
-  });
-  const hover = event => match('hover', event.target, (key, el) => { look(el); once(key, 25000, key, el, 2); });
-  document.addEventListener('pointerover', event => { if (fine.matches) hover(event); });
-  document.addEventListener('focusin', hover);
-  document.addEventListener('click', event => match('click', event.target, (key, el) => once(key, 8000, key, el, 1, true)), true);
+  // The hook nearest the target wins: a figure before the panel it sits in, and among equals the page's own
+  // lines before the shared ones.
+  const find = (on, target) => {
+    let best = [];
+    for (const [key, sel] of hooks[on]) {
+      let el = null;
+      try { el = target.closest?.(sel) || null; } catch (_) {}
+      if (el && (!best[1] || best[1] !== el && best[1].contains(el))) best = [key, el];
+    }
+    return best;
+  };
+  // She reads the pointer's heading a tenth of a second ahead: when it slows toward something she has a line
+  // for, her eyes get there first, and the line comes the moment it lands. Any other hover counts after 0.15
+  // seconds at rest, so passing over things on the way stays quiet. She hops over and says it there; the same
+  // thing again within three seconds gets a look, not a line.
+  let hoverEl = null, hoverTimer = 0, coming = null, px = 0, py = 0, pt = 0, speed = 0;
+  const heard = new WeakMap();
+  const fresh = (el, ms) => now() - (heard.get(el) || -1e9) > ms;
+  const hover = (target, delay) => {
+    const [key, el] = find('hover', target);
+    if (el === hoverEl) return;
+    hoverEl = el; clearTimeout(hoverTimer);
+    if (el) hoverTimer = setTimeout(() => {
+      look(el);
+      if (fresh(el, 3000) && say(key, el, 2, 'near', () => hoverEl === el)) heard.set(el, now());
+    }, el === coming ? 0 : delay);
+  };
+  const ahead = event => {
+    const t = now(), dt = t - pt;
+    if (dt < 40) return;
+    const v = Math.hypot(event.clientX - px, event.clientY - py) / dt;
+    const fx = event.clientX + (event.clientX - px) / dt * 100, fy = event.clientY + (event.clientY - py) / dt * 100;
+    px = event.clientX; py = event.clientY; pt = t;
+    const slowing = v < speed * .85 || v < .25;
+    speed = v;
+    if (!slowing || dt > 200) return;
+    const el = find('hover', document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, fx)), Math.max(0, Math.min(innerHeight - 1, fy))) || root)[1];
+    if (el && el !== hoverEl && el !== coming) { coming = el; look(el, 900); }
+  };
+  document.addEventListener('pointerover', event => { if (fine.matches) hover(event.target, 150); });
+  document.addEventListener('focusin', event => hover(event.target, 0));
+  // A click speaks as the button goes down, not up; keys and taps speak on the click itself.
+  const clicked = target => {
+    const [key, el] = find('click', target);
+    if (el && fresh(el, 1500) && say(key, el, 2, 'near')) heard.set(el, now());
+  };
+  document.addEventListener('pointerdown', event => { if (event.pointerType === 'mouse' && !event.button) clicked(event.target); }, true);
+  document.addEventListener('click', event => clicked(event.target), true);
   // On touch there's no pointer to follow, so she looks at whatever was just touched, and tapping something
   // that isn't a link or a click moment is the closest thing to hovering it.
   document.addEventListener('pointerdown', event => {
     if (fine.matches || !event.target.closest) return;
     look(event.target.closest('a, button, figure, section') || event.target, 1800);
-    let clicky = !!event.target.closest('a[href]:not([href^="#"])');
-    match('click', event.target, () => { clicky = true; });
-    if (!clicky) match('hover', event.target, (key, el) => once(key, 25000, key, el, 2));
+    if (event.target.closest('a[href]:not([href^="#"])') || find('click', event.target)[1]) return;
+    hoverEl = null; hover(event.target, 0);
   });
-  document.addEventListener('toggle', event => { if (event.target.open) match('open', event.target, (key, el) => fire(key, el, 1, true)); }, true);
-  ['play', 'pause'].forEach(type => document.addEventListener(type, event => match(type, event.target, (key, el) => { if (onScreen(el)) once(key, 20000, key, el); }), true));
+  document.addEventListener('toggle', event => { const [key, el] = event.target.open ? find('open', event.target) : []; if (el) say(key, el, 2, 'beside'); }, true);
+  ['play', 'pause'].forEach(type => document.addEventListener(type, event => { const [key, el] = find(type, event.target); if (el && onScreen(el)) once(key, 4000, key, el); }, true));
 
   // Taste, on the home page: after every third film picked in More like this, a read on the picks.
   const picks = [], kinds = {'your-name': 'animation', 'spirited-away': 'animation', 'spider-verse': 'animation', 'sita-ramam': 'telugu', 'rrr': 'telugu', 'dangal': 'india', 'the-matrix': 'action', 'mad-max': 'action', 'parasite': 'korean'};
@@ -325,82 +424,89 @@
     if (picks.length % 3) return;
     const recent = picks.slice(-3), count = kind => recent.filter(p => kinds[p] === kind || (kind === 'india' && kinds[p] === 'telugu') || (kind === 'action' && p === 'rrr')).length;
     const taste = count('telugu') >= 2 ? 'telugu' : count('animation') >= 2 ? 'animation' : count('india') >= 2 ? 'india' : count('action') >= 2 ? 'action' : new Set(recent.map(p => langs[p])).size >= 3 ? 'worldwide' : 'mixed';
-    fire(`taste-${taste}`, document.querySelector('.similar-results'), 3);
+    say(`taste-${taste}`, document.querySelector('.similar-results'));
   });
 
-  // Always on: input wakes her, speed makes her dizzy, quiet makes her doze, and a quiet visitor who is still
-  // reading gets the odd thought of her own.
-  let lastInput = now(), lastScroll = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
+  // Always on: input wakes her, speed makes her dizzy, quiet makes her doze, and a visitor who is still
+  // reading hears her ponder.
+  let lastInput = now(), lastScroll = 0, lastDown = -1e9, lead = 0, idleSaid = false, lastY = scrollY, lastT = now(), fast = 0, readSince = 0, deep = false, pokes = [], shakes = [], lastDir = 0, lastPX = 0;
   const wake = () => {
     lastInput = now(); idleSaid = false;
-    if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); fire('wake', null, 3); aimSoon(); }
+    if (dozing) { dozing = false; poppy.classList.remove('is-dozing'); say('wake', null, 3); aimSoon(); }
   };
   ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(type => addEventListener(type, wake, {passive: true}));
   addEventListener('pointermove', event => {
     wake();
-    if (!fine.matches || mode === 'off' || mode === 'home') return;
+    if (!fine.matches || mode === 'off') return;
+    ahead(event);
+    if (mode === 'home') return;
     pointer = [event.clientX, event.clientY]; aimSoon();
-    if (Math.hypot(event.clientX - x, event.clientY - y) < 56) once('near', 20000, 'near');
+    if (Math.hypot(event.clientX - x, event.clientY - y) < 56 && !(mode === 'sortie' && close)) once('near', 8000, 'near');
     const dir = Math.sign(event.clientX - lastPX);
     if (dir && dir !== lastDir && Math.abs(event.clientX - lastPX) > 6) { shakes = shakes.filter(t => now() - t < 700).concat(now()); lastDir = dir; }
     lastPX = event.clientX;
-    if (shakes.length >= 6 && once('shake', 20000, 'shake')) { shakes = []; dizzy(); }
+    if (shakes.length >= 6 && once('shake', 8000, 'shake')) { shakes = []; dizzy(); }
   }, {passive: true});
   addEventListener('scroll', () => {
     wake();
     const t = now(), v = (scrollY - lastY) / Math.max(1, t - lastT) * 1000;
     lastY = scrollY; lastT = t; lastScroll = t;
+    if (v > 0) { lastDown = t; lead = Math.min(v * .4, innerHeight * LEAD); }
+    if (pending.size) trySeen();
+    if (mode === 'home' && showing()) placeBubble();
     if (mode === 'off' || mode === 'home') return;
     aimSoon();
     fast = Math.abs(v) > 3200 ? fast + 1 : 0;
-    if (fast > 2 && once('fling', 15000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) dizzy();
-    if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000) once('reading', 180000, 'reading', null, 0); } else readSince = 0;
-    if (innerHeight + scrollY >= root.scrollHeight - 40) { sweep(); once('bottom', 600000, 'bottom'); }
-    if (scrollY < 40 && deep && page !== 'home') once('top', 60000, 'top');
+    if (fast > 2 && once('fling', 6000, v > 0 ? 'scroll-fast-down' : 'scroll-fast-up')) dizzy();
+    if (Math.abs(v) < 600) { readSince ||= t; if (t - readSince > 25000) once('reading', 90000, 'reading', null, 0); } else readSince = 0;
+    if (innerHeight + scrollY >= root.scrollHeight - 40) { sweep(); trySeen(); once('bottom', 60000, 'bottom', null, 1); }
+    if (scrollY < 40 && deep && page !== 'home') once('top', 20000, 'top');
     if (scrollY > 1500) deep = true;
   }, {passive: true});
   poppy.addEventListener('click', () => {
     pokes = pokes.filter(t => now() - t < 6000).concat(now());
     hop();
-    fire(pokes.length >= 4 ? 'poke-many' : 'poke', null, 3);
+    say(pokes.length >= 4 ? 'poke-many' : 'poke', null, 3);
   });
   poppy.addEventListener('animationend', event => { if (event.animationName === 'poppy-hop') poppy.classList.remove('is-poked'); });
+  // The name's own quips (app.js) speak from the same spot, so docked she gives way to them.
+  document.addEventListener('animationstart', event => { if (mode === 'home' && showing() && event.target.classList?.contains('eye-quip')) hush(); });
   let left = 0;
-  document.addEventListener('mouseout', event => { if (!event.relatedTarget && fine.matches) { left = now(); pointer = null; aimSoon(); once('pointer-leave', 30000, 'pointer-leave'); } });
-  document.addEventListener('mouseover', event => { if (!event.relatedTarget && left && now() - left > 2500) once('pointer-return', 30000, 'pointer-return'); left = 0; });
+  document.addEventListener('mouseout', event => { if (!event.relatedTarget && fine.matches) { left = now(); pointer = null; aimSoon(); once('pointer-leave', 8000, 'pointer-leave'); } });
+  document.addEventListener('mouseover', event => { if (!event.relatedTarget && left && now() - left > 2500) once('pointer-return', 8000, 'pointer-return'); left = 0; });
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hiddenAt = now();
-    else if (hiddenAt && now() - hiddenAt > 4000) fire('away-back', null, 3);
+    else if (hiddenAt && now() - hiddenAt > 4000) say('away-back', null, 3);
   });
   let selTimer = 0;
   document.addEventListener('selectionchange', () => {
     clearTimeout(selTimer);
-    selTimer = setTimeout(() => { if (String(getSelection()).trim().length >= 15) once('select', 30000, 'select'); }, 700);
+    selTimer = setTimeout(() => { if (String(getSelection()).trim().length >= 15) once('select', 8000, 'select'); }, 700);
   });
-  document.addEventListener('copy', () => fire('copy', null, 3));
+  document.addEventListener('copy', () => say('copy', null, 3));
   addEventListener('keydown', event => {
-    if (event.key === 'Tab') once('keyboard', 600000, 'keyboard');
-    else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') once('find', 60000, 'find');
-    else if (event.key === 'Escape' && !root.classList.contains('trailer-open')) once('escape', 30000, 'escape');
+    if (event.key === 'Tab') once('keyboard', 120000, 'keyboard');
+    else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') once('find', 20000, 'find');
+    else if (event.key === 'Escape' && !root.classList.contains('trailer-open')) once('escape', 10000, 'escape');
   });
-  document.addEventListener('contextmenu', () => once('right-click', 60000, 'right-click'));
-  document.addEventListener('dblclick', event => { if (!event.target.closest?.('a, button, input, summary, .poppy')) once('double-click', 30000, 'double-click'); });
+  document.addEventListener('contextmenu', () => once('right-click', 15000, 'right-click'));
+  document.addEventListener('dblclick', event => { if (!event.target.closest?.('a, button, input, summary, .poppy')) once('double-click', 10000, 'double-click'); });
   let empties = [];
   document.addEventListener('click', event => {
     if (event.target.closest?.('a, button, summary, input, label, video, img, figure, details, [data-seed], .poppy')) return;
     empties = empties.filter(t => now() - t < 4000).concat(now());
-    if (empties.length >= 3 && once('click-empty', 30000, 'click-empty')) empties = [];
+    if (empties.length >= 3 && once('click-empty', 10000, 'click-empty')) empties = [];
   });
-  addEventListener('hashchange', () => { let el = null; try { el = document.querySelector(location.hash); } catch (_) {} once('jump', 15000, 'jump', el); });
-  addEventListener('pageshow', event => { if (event.persisted) fire('back-forward', null, 3); });
-  addEventListener('offline', () => fire('offline', null, 3));
-  addEventListener('online', () => fire('online', null, 3));
+  addEventListener('hashchange', () => { let el = null; try { el = document.querySelector(location.hash); } catch (_) {} once('jump', 4000, 'jump', el); });
+  addEventListener('pageshow', event => { if (event.persisted) say('back-forward', null, 3); });
+  addEventListener('offline', () => say('offline', null, 3));
+  addEventListener('online', () => say('online', null, 3));
   let sizeTimer = 0;
-  addEventListener('resize', () => { run(); clearTimeout(sizeTimer); sizeTimer = setTimeout(() => once('resize', 60000, 'resize'), 600); });
+  addEventListener('resize', () => { run(); clearTimeout(sizeTimer); sizeTimer = setTimeout(() => once('resize', 15000, 'resize'), 600); });
   new MutationObserver(() => {
     const open = root.classList.contains('trailer-open');
-    if (!open && poppy.dataset.trailer) { delete poppy.dataset.trailer; setTimeout(() => fire('trailer-back', null, 3), 700); }
+    if (!open && poppy.dataset.trailer) { delete poppy.dataset.trailer; setTimeout(() => say('trailer-back', null, 3), 700); }
     if (open) poppy.dataset.trailer = '1';
   }).observe(root, {attributes: true, attributeFilter: ['class']});
   const blink = () => setTimeout(() => {
@@ -408,26 +514,45 @@
     blink();
   }, 2500 + Math.random() * 4500);
   blink();
+  // Pondering: another thought on the part of the page in view that she has already remarked on, while its
+  // pool lasts, and now and then something of her own.
   const ambient = ['ambient', 'ambient', 'ambient', 'doubt', 'credit', 'boss', 'snack'];
+  const thought = {};
+  const ponder = () => {
+    if (wait(0) > 0) return;
+    const mid = innerHeight * .4, gap = r => r.top > mid ? r.top - mid : r.bottom < mid ? mid - r.bottom : 0;
+    let best = null, score = innerHeight * .3;
+    for (const el of watched) {
+      if (!done.has(el.dataset.poppySeen)) continue;
+      const g = gap((el.closest('section') || el).getBoundingClientRect()) * 2 + gap(el.getBoundingClientRect()) * .1;
+      if (g < score) { score = g; best = el; }
+    }
+    const key = best?.dataset.poppySeen;
+    if (key && (thought[key] || 0) < pools[key].length - 1 && Math.random() < .75) { thought[key] = (thought[key] || 0) + 1; say(key, best, 0, 'beside'); }
+    else say(ambient[Math.floor(Math.random() * ambient.length)], null, 0);
+  };
   const IDLE = ['wink', 'zoom', 'up', 'side', 'squint', 'happy', 'roll', 'cross', 'nod', 'tilt', 'boggle', 'blink2', 'spin', 'suspicious', 'bounce', 'down'];
   const started = now();
   setInterval(() => {
-    if (mode === 'off' || mode === 'home' || document.hidden) return;
-    const quiet = now() - lastInput;
-    if (!dozing && quiet > 40000) { dozing = true; poppy.classList.add('is-dozing'); aim(); fire('doze', null, 3); }
-    else if (dozing) { if (now() - lastSaid > 9000) fire('doze', null, 1); }
-    else if (quiet > 12000 && !idleSaid) idleSaid = fire('idle');
+    if (mode === 'off' || document.hidden) return;
+    const quiet = now() - lastInput, docked = mode === 'home';
+    if (!docked && !dozing && quiet > 40000) { dozing = true; poppy.classList.add('is-dozing'); aim(); say('doze', null, 3); }
+    else if (dozing) { if (now() - lastSaid > 9000) say('doze', null, 0); }
+    else if (quiet > 12000 && !idleSaid) idleSaid = say('idle', null, 0);
     else if (now() - started > 240000 && once('long-visit', 1e9, 'long-visit', null, 0)) return;
     else if (now() - started > 720000 && once('very-long-visit', 1e9, 'very-long-visit', null, 0)) return;
-    else if (pending.size) trySeen();
-    else if (quiet < 15000 && now() - lastScroll > 3000 && now() - lastSaid > 38000) fire(ambient[Math.floor(Math.random() * ambient.length)]);
-    if (!dozing && !face && !bubble.classList.contains('is-showing') && Math.random() < .07) express(IDLE[Math.floor(Math.random() * IDLE.length)], 1400);
-  }, 2500);
+    else {
+      if (pending.size) trySeen();
+      if (quiet < 30000 && now() - lastScroll > 1200) ponder();
+    }
+    if (!docked && !dozing && !face && !showing() && Math.random() < .03) express(IDLE[Math.floor(Math.random() * IDLE.length)], 1400);
+  }, 1000);
 
-  // Lines load once the page is idle. If she flew out before they arrived, she says hello then.
-  const get = url => url ? fetch(url).then(r => r.json()) : Promise.resolve([]);
-  const loaded = new Promise(done => (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => Promise.all([get(script.dataset.pageLines), get(script.dataset.lines)]).then(([mine, all]) => { wire(mine); wire(all); }).catch(() => {}).then(done), {timeout: 2500}));
-  loaded.then(() => { if (page === 'home' && lastSaid < 0 && (mode === 'perch' || mode === 'sortie')) hello(); });
+  // Lines load at once, at low priority, so she has them before the visitor does anything; then she says
+  // hello, from the name if she's in it.
+  const get = url => url ? fetch(url, {priority: 'low'}).then(r => r.json()) : Promise.resolve([]);
+  const loaded = Promise.all([get(script.dataset.pageLines), get(script.dataset.lines)]).then(([mine, all]) => { wire(mine); wire(all); }).catch(() => {});
+  loaded.then(() => { if (page === 'home' && lastSaid < 0) hello(); });
 
   // Start, and stop for reduced motion: she goes home (or away) at once and keeps quiet.
   const hasHome = name && letters.length === 2;
@@ -444,12 +569,12 @@
     const p = perch();
     x = p.x; y = p.y - 36; s = .4; vx = vy = vs = 0;
     mode = 'perch'; show(); run();
-    loaded.then(() => setTimeout(hello, 900));
+    loaded.then(() => setTimeout(hello, 400));
   };
   document.addEventListener('motionchange', () => {
     if (!reduced()) { if (mode === 'off') start(); return; }
     cancelAnimationFrame(frame); frame = 0; hush(); dozing = false;
-    poppy.classList.remove('is-out', 'is-dozing', 'is-flying');
+    poppy.classList.remove('is-out', 'is-dozing', 'is-flying', 'is-visiting');
     if (name) name.classList.remove('is-poppy-out');
     mode = 'off';
   });
